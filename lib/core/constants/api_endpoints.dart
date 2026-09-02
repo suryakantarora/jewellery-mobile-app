@@ -14,6 +14,11 @@ abstract final class ApiEndpoints {
   static const companies = '/companies';
   static String company(String id) => '/companies/$id';
   static const branches = '/branches';
+
+  /// The caller's own branches. Needs no permission, unlike [branches], which
+  /// requires ORGANIZATION_VIEW — a permission a sales executive has no reason
+  /// to hold and without which they could not sign in at all.
+  static const myBranches = '/branches/mine';
   static String branch(String id) => '/branches/$id';
   static String branchLocations(String branchId) =>
       '/branches/$branchId/locations';
@@ -104,6 +109,10 @@ abstract final class ApiEndpoints {
   static const overdueRepairs = '/repairs/overdue';
   static const exchanges = '/exchanges';
   static String exchange(String id) => '/exchanges/$id';
+
+  /// Customer-facing stock: names resolved and priced by the server, with no
+  /// cost, supplier or location data in the response at all.
+  static const catalogueItems = '/catalogue/items';
 
   // --- Notifications, reports, files ---------------------------------------
   static const notifications = '/notifications';

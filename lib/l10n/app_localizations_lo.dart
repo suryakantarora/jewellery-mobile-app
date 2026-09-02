@@ -143,6 +143,9 @@ class AppL10nLo extends AppL10n {
   String get screenReports => 'ລາຍງານ';
 
   @override
+  String get screenCatalogue => 'ລາຍການສິນຄ້າ';
+
+  @override
   String get screenNotifications => 'ການແຈ້ງເຕືອນ';
 
   @override

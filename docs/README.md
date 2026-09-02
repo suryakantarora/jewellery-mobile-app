@@ -4,10 +4,14 @@ Design for all 17 phases, written against the **actual Spring Boot backend** in
 `../../erp-backend` rather than only the phase specs. Where the two disagree, the backend wins
 and the difference is called out.
 
-Nothing here is implemented yet. Review, then development starts at Phase 1.
+All 17 phases are now implemented; these design documents remain the record of *why* each
+phase is shaped the way it is. **[BUILD-LOG.md](BUILD-LOG.md)** records what changed during
+construction and every bug found along the way.
 
 ## Read in this order
 
+0. **[NEXT-STEPS.md](NEXT-STEPS.md)** — **start here when resuming.** Current state, the
+   decisions that block further work, and what is ready to build once they are made.
 1. **[BACKEND-GAPS.md](BACKEND-GAPS.md)** — start here. Every gap between what the phases ask
    for and what the backend provides, plus the decisions I need from you. 30 items.
 2. **[PHASE-1-DESIGN.md](PHASE-1-DESIGN.md)** — Foundation: stack, structure, theme, router,

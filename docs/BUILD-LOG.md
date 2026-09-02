@@ -631,3 +631,311 @@ Android verified on device · iOS builds (Runner.app)
   awaiting *your* approval" has no event behind it.
 - **Design images** — `product` and `jewellery_item` now have them; design does
   not. Trivial to mirror if the catalogue needs it.
+
+---
+
+## Multi-role testing — 2 September 2026
+
+Until now the app had only ever been driven as `admin` (67 permissions) and
+`khamla` (BRANCH_MANAGER, 54). Those are the two *widest* roles, which is the
+worst possible coverage for permission-gated UI: nothing is hidden, so nothing
+that depends on hiding is exercised.
+
+The seeded roles:
+
+| user | role | perms |
+|---|---|---|
+| admin | SUPER_ADMIN | 67 |
+| khamla | BRANCH_MANAGER | 54 |
+| noy | AUDITOR | 23 (all view-only) |
+| somchai | SALES_EXECUTIVE | 24 |
+| bounma | INVENTORY_OFFICER | 18 |
+
+Signing in as `bounma` — the narrowest — found three real defects.
+
+### 🟢 A deliberate sign-out was reported as an expiry
+
+Tapping **Sign out** landed on the login screen showing *"Your session expired.
+Please sign in again."* Nothing had expired; the user had chosen to leave.
+
+The sign-out request is sent with the very token that may already be dead. Its
+401 came back through `onAuthenticationLost()`, which called `signOut` again
+with `SignOutReason.sessionExpired` and overwrote the user's own reason.
+
+This is not an edge case: **anyone who leaves the app overnight and then taps
+Sign out** hits it, and is told something failed when nothing did.
+`onAuthenticationLost` now ignores a sign-out already in flight, and one that
+has already completed. Covered by `test/core/sign_out_reason_test.dart`.
+
+### 🟢 One user saw the previous user's browsing history
+
+`bounma`'s dashboard showed **khamla's** "Recently viewed" items. The list is
+in-memory, but the provider outlives a sign-out, and nothing cleared it.
+
+Showroom devices are shared between shifts, so this is the normal case rather
+than an unusual one. `RecentItemsController.build()` now watches
+`currentUserProvider`, so a change of user rebuilds the notifier with an empty
+list — self-enforcing, rather than relying on someone remembering to call
+`clear()` from the sign-out path.
+
+Checked the rest of local storage while there. Only one other ad-hoc persisted
+key exists — the stock-count draft — and it is keyed by count id, not by user. A
+count is shared branch work, so resuming a colleague's draft is legitimate; left
+as is.
+
+### 🟢 The notifications inbox was hidden from the staff it was built for
+
+The nav entry required `NOTIFICATION_VIEW`. That permission gates the **admin
+delivery-queue search**, not a person's own mail — `/notifications/mine` is
+scoped to the caller and deliberately needs no permission.
+
+The effect was backwards: an inventory officer receives every transfer
+broadcast and **could not open the screen showing them**, while the permission
+was held by roles that mostly do not need an inbox. Gate removed.
+
+### What degrades correctly
+
+Verified on the device as INVENTORY_OFFICER:
+
+- Dashboard drops the sales and stock-value tiles with **no holes** in the grid
+  — the tiles reflow rather than leaving gaps.
+- More menu hides Sales Assistance, Customers, Approvals and Reports; the
+  "Insight" group disappears entirely rather than leaving a bare header.
+- Branch defaults to the user's own (Central Warehouse), not a remembered one.
+- The forced password-change flow works end to end for a first sign-in.
+- The bin control on the passport is hidden — `INVENTORY_ADJUST` belongs to
+  manager and above, and none of the three narrow roles has it.
+- The component gallery stays behind `allowsDeveloperTools`.
+
+### Still untested
+
+`somchai` (SALES_EXECUTIVE) and `noy` (AUDITOR) have not been driven through the
+app. Sales matters most: it is the only role with `SALE_CREATE` and
+`PAYMENT_COLLECT`, so the sales and payment flows have **never been exercised by
+a user who can actually perform them** — admin and khamla can, but no session
+has walked the flow. Auditor is view-only and lower risk, but is the one role
+that should see *no* action buttons anywhere, which is worth confirming rather
+than assuming.
+
+### Status
+```
+149 Dart files · 106 Flutter tests · analyzer clean
+128 backend tests · Flyway at V26
+```
+
+---
+
+## All five roles tested — 2 September 2026
+
+`somchai` (SALES_EXECUTIVE) and `noy` (AUDITOR) driven through the app on the
+device, completing coverage of every seeded role. The sales role found a
+**complete sign-in blocker**.
+
+### 🔴→🟢 A sales executive could not sign in at all
+
+The forced password change reported *"You do not have permission to perform this
+action"*. Two things were wrong, and the first hid the second.
+
+**The message was a lie.** The password change had *succeeded* — `must_change_password`
+was already false in the database. The app then continued into `_establish()`,
+which calls `branchesFor()`, and reported that call's failure as if the change
+had failed. A member of staff would have retried with their old password, which
+no longer worked, with nothing on screen to explain why.
+
+**The real blocker:** `GET /branches` requires `ORGANIZATION_VIEW`. A sales
+executive has no reason to browse the organisation and does not hold it — but
+the app cannot establish a session without knowing the user's branches, so
+sign-in could never complete. **SALES_EXECUTIVE was locked out of the entire
+application.**
+
+This is the same shape as the notifications defect: *a permission meant for
+administrative browsing was gating a user's own data.* Worth watching for
+elsewhere — it has now appeared twice.
+
+Fixed on both sides:
+- Backend: `GET /branches/mine`, scoped to the caller, needing no permission.
+  A super administrator gets every active branch, matching the empty-branch-set
+  convention used everywhere else.
+- App: `branchesFor` uses it, and drops the client-side filtering that is no
+  longer needed. A password change now re-authenticates with the **new**
+  password rather than reusing tokens the backend has just revoked.
+
+Verified: `somchai` 403s on `/branches` and 200s on `/branches/mine`; sign-in
+completes; `admin` still sees all three branches.
+
+### 🟢 "Vientiane Showroom › Vientiane Showroom"
+
+The header shows *company › branch*, resolving the company from the branch's
+`companyId` — another call needing `ORGANIZATION_VIEW`. When it 403s the code
+fell back to the branch name **for the company slot**, so the bar repeated the
+same name on both sides of the separator and read as a bug.
+
+It now shows the branch alone when the company cannot be resolved. Confirmed
+both ways on the device: `somchai` sees "Vientiane Showroom", `noy` — who holds
+`ORGANIZATION_VIEW` — still sees "ABC Jewellery › Pakse Showroom".
+
+### What each role sees
+
+| role | verified |
+|---|---|
+| SUPER_ADMIN | everything; empty branch set means *all* branches |
+| BRANCH_MANAGER | full operations, dual-auth approvals |
+| INVENTORY_OFFICER | no sales/customer tiles, no Insight group, no bin edit |
+| SALES_EXECUTIVE | 4 tabs (no Transfers), Sales/Customers/Exchange only |
+| AUDITOR | read-only: quick actions reduce to Scan and Search alone |
+
+Grids and menus reflow in every case — no holes, no empty group headers.
+
+### 🟡 Left as is
+
+`somchai`'s "Today's sales" tile reads **"Unavailable"** permanently: the role
+holds `SALE_VIEW` but the tile is backed by the sales *report*, which needs
+`REPORT_VIEW`. Honest, but a tile that can never load for a role would be better
+hidden than shown as unavailable. Small, and it needs a product view on whether
+sales staff should see their branch's daily total at all.
+
+### Item photographs
+
+All 40 items now carry real photographs, from the images supplied in
+`assets/imgs/samples`, matched to what each product actually is — the ring shot
+on rings, the earring shot on studs, and so on. Each image is uploaded once and
+linked to every item of that product. Marketing, event and model photographs in
+the same folder were left alone: they are fine images, they are simply not
+pictures of a specific piece, which is what an item photo has to be.
+
+### Status
+```
+149 Dart files · 107 Flutter tests · analyzer clean
+128 backend tests · Flyway at V26
+All five roles verified on a physical device
+```
+
+---
+
+## Option 3 — the customer catalogue · 2 September 2026
+
+A "show the customer" mode in the staff app, built as the **storefront read
+model it will need to become**. The point of starting here is that the catalogue
+API is the same one a customer app browses, so this is step one of option 1
+rather than a detour — and it validates that API against real staff use before
+any consumer commerce is committed to.
+
+### `GET /api/v1/catalogue/items`
+
+Two properties are deliberate and worth keeping.
+
+**Names, not ids.** Every other item response returns bare UUIDs and leaves the
+client to resolve them — which is why the app needs a reference cache at all. A
+storefront has no such cache, so the join happens once on the server. The
+response carries `productName`, `categoryName`, `metalName`, `purityCode`
+directly.
+
+**No cost, anywhere.** There is no `purchaseCost`, `makingCost`, `totalCost`,
+supplier, location or bin — not hidden behind a permission, *absent from the
+shape*. Safety by structure rather than by policy: it cannot leak what a
+customer must never see, whichever client asks and however it authenticates.
+`CatalogueResponseShapeTest` asserts this reflectively, so a field added later
+out of convenience fails the build instead of quietly appearing in a customer's
+hand.
+
+Other decisions:
+
+- **Priced live** by `PricingCalculator` — the same engine a sale uses, so the
+  figure quoted across the counter is the figure charged. A stored price goes
+  stale the moment the gold rate moves, and a stale quote is a promise the shop
+  then has to keep or break.
+- **No customer, so no tier discount.** A catalogue shows list price; what an
+  individual pays is settled at the till where their tier is known.
+- **`AVAILABLE` only**, and not as a parameter — showing a customer something
+  reserved, sold or away for repair is worse than showing nothing, so no caller
+  can ask for it.
+- **A missing metal rate does not blank the row.** The piece still exists and
+  can be described, so the price is null and the client says "Ask in store"
+  rather than showing a zero.
+- Photographed pieces sort first: a catalogue leads with what can be seen.
+
+Implemented as a `JdbcTemplate` read model following `ReportingQueryRepository`
+— it crosses six tables in three schemas to produce one display row, and
+loading the object graph to discard most of it would cost far more than it
+returns.
+
+### 🟢 A SQL bug worth remembering
+
+`ORDER BY (primary_image_key IS NULL)` failed with *column does not exist*.
+Postgres accepts a bare output alias in `ORDER BY`, but **not one wrapped in an
+expression**, where it resolves as a real column instead. The condition is now
+repeated as an `EXISTS` rather than referring to the alias.
+
+### The screen
+
+Image-led, because a list of codes and weights is how staff *find* stock while a
+customer chooses with their eyes. Grid sized by `maxCrossAxisExtent`, so it
+becomes two columns on a phone and more on a tablet held out across the counter
+without a breakpoint to maintain. Tapping opens the piece large, with hallmark
+shown — it is the independent guarantee of purity and belongs in front of a
+customer rather than buried in an internal record.
+
+Verified on the device with real photographs and live LAK prices.
+
+### Status
+```
+154 Dart files · 107 Flutter tests · analyzer clean
+129 backend tests · Flyway at V26
+```
+
+### Next, when you want it
+Option 1 is now a smaller step than it was: the catalogue endpoint exists and is
+already shaped for public use. What remains is customer identity, cart and
+orders — plus the multi-tenant decision (one storefront per company, resolved by
+domain or config) before that identity model is fixed.
+
+---
+
+## Tenancy check and image sourcing · 2 September 2026
+
+### Multi-tenancy is not enforced — a decision, not a bug fix
+
+With a multi-tenant customer app planned, the tenancy model had to be checked
+before customer accounts exist, because it is what an account belongs to.
+
+Findings are recorded as items 37–40 in BACKEND-GAPS. In short: **the branch is
+the authorization boundary and the company is enforced nowhere**; reads are not
+branch-scoped (writes are, in eleven services); and product master data is
+global across companies.
+
+Demonstrated rather than inferred — `somchai`, granted one showroom, reads all
+40 items across every branch.
+
+I deliberately did **not** lock reads down. Cross-branch reads are load-bearing
+in this app: the transfer list names another branch's locations, and the
+reference cache loads every accessible branch on purpose. For a single company
+the present behaviour is defensible. For several companies it is not survivable,
+and that is the choice to make.
+
+What was changed is the catalogue alone, because it is the surface intended to
+face outward: omitting `branchId` now means "where I am" rather than
+"everything", and asking for a branch you lack returns 403.
+
+### Images already come from the backend
+
+Confirmed against the requirement that images be uploaded and configured from
+the backend rather than shipped with the app:
+
+- `pubspec.yaml` bundles **fonts only** — no image assets are declared, so none
+  ship. `assets/imgs/` is a working folder, not part of the build.
+- No `Image.asset` or `AssetImage` anywhere in `lib/`.
+- The brand mark is drawn in code (`CustomPaint`), not an image file.
+- Every picture on screen is fetched through `GET /api/v1/files?key=` by
+  `ItemPhoto`, using the Dio client so the request carries a refreshed token —
+  which `Image.network` with a hand-built header map could not do.
+
+Upload a photograph, link it to an item, and it appears in the app with no
+release. **Not yet covered:** there is no backend-managed *branding* — banners,
+category artwork, a shop logo. That is a small feature if wanted; it just does
+not exist yet.
+
+### Status
+```
+154 Dart files · 107 Flutter tests · analyzer clean
+130 backend tests · Flyway at V26
+```

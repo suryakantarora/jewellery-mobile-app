@@ -144,6 +144,9 @@ class AppL10nEn extends AppL10n {
   String get screenReports => 'Reports';
 
   @override
+  String get screenCatalogue => 'Catalogue';
+
+  @override
   String get screenNotifications => 'Notifications';
 
   @override

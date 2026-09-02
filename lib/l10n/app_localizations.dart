@@ -363,6 +363,12 @@ abstract class AppL10n {
   /// **'Reports'**
   String get screenReports;
 
+  /// No description provided for @screenCatalogue.
+  ///
+  /// In en, this message translates to:
+  /// **'Catalogue'**
+  String get screenCatalogue;
+
   /// No description provided for @screenNotifications.
   ///
   /// In en, this message translates to:

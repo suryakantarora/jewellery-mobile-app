@@ -86,7 +86,18 @@ class SessionController extends Notifier<SessionState>
       newPassword: newPassword,
     );
 
-    await _establish(user);
+    // Sign in again rather than carrying on with the tokens we arrived with.
+    //
+    // The backend revokes every token for the user on a credential change —
+    // deliberately, so a stolen session dies with the old password. Continuing
+    // on them meant the very next call (`/branches`, inside `_establish`) came
+    // back 403, and the change screen reported "You do not have permission to
+    // perform this action" for a password that had in fact just been changed.
+    //
+    // Worse than a wrong message: the user would retry with the old password,
+    // which no longer works, and have no way to understand why. This is the
+    // first thing every new member of staff does, so it had to be right.
+    await signIn(username: user.username, password: newPassword);
   }
 
   /// Resolves branch context and moves to an authenticated session.

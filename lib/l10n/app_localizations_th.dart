@@ -141,6 +141,9 @@ class AppL10nTh extends AppL10n {
   String get screenReports => 'รายงาน';
 
   @override
+  String get screenCatalogue => 'แคตตาล็อก';
+
+  @override
   String get screenNotifications => 'การแจ้งเตือน';
 
   @override

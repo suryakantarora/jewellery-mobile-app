@@ -18,6 +18,7 @@ import '../../features/reports/presentation/screens/reports_screen.dart';
 import '../../features/repairs/presentation/screens/repair_screens.dart';
 import '../../features/scanner/presentation/providers/scanner_providers.dart';
 import '../../features/exchange/presentation/screens/exchange_screens.dart';
+import '../../features/catalogue/presentation/screens/catalogue_screen.dart';
 import '../../features/notifications/presentation/screens/notification_center_screen.dart';
 import '../../features/procurement/presentation/screens/goods_receiving_screen.dart';
 import '../../features/procurement/presentation/screens/procurement_screen.dart';
@@ -242,6 +243,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'notifications',
                     builder: (_, __) => const NotificationCenterScreen(),
+                  ),
+                  GoRoute(
+                    path: 'catalogue',
+                    builder: (_, __) => const CatalogueScreen(),
                   ),
                   GoRoute(
                     path: 'profile',

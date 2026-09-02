@@ -23,9 +23,12 @@ class BranchContextBar extends ConsumerWidget {
     if (session is! SessionAuthenticated) return const SizedBox.shrink();
 
     final user = session.user;
-    // The company is resolved asynchronously from the branch's companyId, so
-    // the branch name stands in until it arrives rather than leaving a gap.
-    final institution = session.company?.name ?? session.branch.name;
+    // The company is resolved from the branch's companyId, and that lookup
+    // needs ORGANIZATION_VIEW — which a sales executive has no reason to hold.
+    // When it is missing the bar shows the branch alone rather than repeating
+    // it on both sides of the separator, which read as "Vientiane Showroom ›
+    // Vientiane Showroom" and looked like a bug to anyone using the app.
+    final institution = session.company?.name;
     final canSwitch = user.hasMultipleBranches;
 
     return Material(
@@ -48,19 +51,23 @@ class BranchContextBar extends ConsumerWidget {
               Expanded(
                 child: Row(
                   children: [
-                    Flexible(
-                      child: Text(
-                        institution,
-                        style: context.text.labelMedium,
-                        overflow: TextOverflow.ellipsis,
+                    if (institution != null) ...[
+                      Flexible(
+                        child: Text(
+                          institution,
+                          style: context.text.labelMedium,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                    _Separator(),
+                      _Separator(),
+                    ],
                     Flexible(
                       child: Text(
                         session.branch.name,
                         style: context.text.labelMedium?.copyWith(
-                          color: context.scheme.onSurfaceVariant,
+                          color: institution == null
+                              ? null
+                              : context.scheme.onSurfaceVariant,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),

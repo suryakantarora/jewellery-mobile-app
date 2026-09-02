@@ -254,3 +254,80 @@ my enum. Recorded here because the first draft stated two of these as fact.
 28. **Package id** — `com.finotech.jewellery.mobile`?
 29. **PO authoring on mobile** — I have scoped it out (read + approve + receive only).
 30. **Finance / compliance reports on mobile** — I have scoped them out.
+
+---
+
+## Multi-tenancy — verified 2 September 2026
+
+Checked before designing a customer storefront, because the tenancy model
+determines the customer identity model and is painful to change once accounts
+exist.
+
+### 37. Branch is the authorization boundary; company is not enforced anywhere
+
+`Branch.java` says so explicitly — *"Branches are the primary authorization
+boundary"* — and the principal bears this out: `AuthenticatedUser` carries
+`branchIds` and `superAdmin`, and **no company at all**. No query filters by
+company.
+
+With one company on the platform this is invisible. With two it means there is
+no isolation between them of any kind.
+
+### 38. Reads are not branch-scoped; writes are
+
+Eleven services call `SecurityUtils.requireBranchAccess(...)` — sale, quotation,
+payment, purchase order, goods receipt, repair, exchange, daily closing, stock
+count. Every one of them is a **mutation**. No read path calls it.
+
+Demonstrated with `somchai`, who is granted Vientiane Showroom only:
+
+```
+GET /inventory/items?branchId=<Central Warehouse>   → 9 items    (not their branch)
+GET /inventory/items                                → 40 items   (every branch)
+```
+
+`branchId` is a filter, not a boundary.
+
+**This may well be intentional, and it is not obviously wrong.** A salesperson
+asking "do we have this in Pakse?" is a real workflow, and this app already
+relies on cross-branch reads — the transfer list names the *other* branch's
+locations, and the reference cache deliberately loads every accessible branch.
+Locking reads down would break that.
+
+So it is recorded as a decision to make rather than a defect fixed:
+
+- **One company, many branches** (today) — current behaviour is defensible.
+  Staff see group stock; mutations stay branch-guarded.
+- **Many companies on one platform** (the stated direction) — it is not
+  survivable. Company A would read Company B's stock, customers and prices.
+
+### 39. Product master data is global, not per company
+
+`product.product`, `product.metal` and `product.product_category` have **no
+company or branch column**. `metal_rate` is branch-scoped and
+`jewellery_item` is branch-scoped, but the catalogue they hang off is shared
+platform-wide.
+
+For a second tenant this means shared product definitions and categories, not
+merely visible ones. That is a schema change, not a query change, so it is worth
+settling before the data grows.
+
+### 40. Customers are only loosely branch-associated
+
+`customer.customer` has a **nullable** `registered_branch_id` and nothing filters
+on it. (Its `company_name` column is the *customer's* employer — easy to misread
+as a tenant key; it is not one.)
+
+This matters most for the planned customer app: a customer account needs to
+belong to a tenant, and today there is no field that reliably says which.
+
+### 🟢 What was done about it now
+
+The catalogue — the one surface written to be shown outside the business — is
+scoped, without disturbing staff read behaviour elsewhere:
+
+- omitting `branchId` means *"where I am"*, not *"everything"*
+- requesting a branch the caller lacks returns **403**
+- a super admin, who has no home branch by design, still sees all
+
+Verified: `somchai` 19 items unscoped, 403 for Central Warehouse; `admin` 34.

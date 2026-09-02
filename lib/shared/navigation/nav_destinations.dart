@@ -185,6 +185,15 @@ const secondaryDestinations = <SecondaryDestination>[
     labelKey: 'screenNotifications',
     group: NavGroup.insight,
   ),
+  // Sits in Commercial rather than Insight: it is a selling tool, reached
+  // while a customer is standing there, not something read afterwards.
+  SecondaryDestination(
+    route: AppRoutes.catalogue,
+    icon: Icons.auto_awesome_outlined,
+    labelKey: 'screenCatalogue',
+    group: NavGroup.commercial,
+    requires: Permission.inventoryView,
+  ),
   SecondaryDestination(
     route: AppRoutes.profile,
     icon: Icons.account_circle_outlined,

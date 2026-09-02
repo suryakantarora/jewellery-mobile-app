@@ -19,6 +19,7 @@ String navLabel(AppL10n l10n, String key) => switch (key) {
   'screenExchange' => l10n.screenExchange,
   'screenApprovals' => l10n.screenApprovals,
   'screenReports' => l10n.screenReports,
+  'screenCatalogue' => l10n.screenCatalogue,
   'screenNotifications' => l10n.screenNotifications,
   'screenProfile' => l10n.screenProfile,
   'screenSettings' => l10n.screenSettings,

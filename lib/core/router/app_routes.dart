@@ -63,6 +63,9 @@ abstract final class AppRoutes {
   static const approvals = '/more/approvals';
   static const reports = '/more/reports';
   static const notifications = '/more/notifications';
+
+  /// The customer-facing catalogue a salesperson shows across the counter.
+  static const catalogue = '/more/catalogue';
   static const profile = '/more/profile';
   static const settings = '/more/settings';
 

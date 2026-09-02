@@ -99,20 +99,26 @@ class ApiAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<List<Branch>> branchesFor(AppUser user) async {
-    final page = await _client.getPage<Branch>(
-      ApiEndpoints.branches,
-      query: {'size': 200},
-      parseItem: Branch.fromJson,
+  /// The branches this user may work in.
+  ///
+  /// Uses `/branches/mine`, which the backend scopes to the caller and which
+  /// needs no permission. The general `/branches` listing requires
+  /// ORGANIZATION_VIEW; because establishing a session depends on this call,
+  /// gating it that way meant a sales executive could not sign in at all — they
+  /// have no reason to browse the organisation, and did not hold it.
+  ///
+  /// No client-side filtering: the server already returns exactly this user's
+  /// branches, and every branch for a super admin.
+  Future<List<Branch>> branchesFor(AppUser user) {
+    return _client.get<List<Branch>>(
+      ApiEndpoints.myBranches,
+      parse: (data) => data is List
+          ? data
+                .whereType<Map<String, dynamic>>()
+                .map(Branch.fromJson)
+                .toList(growable: false)
+          : const <Branch>[],
     );
-
-    // The backend is the authority on branch access, but a super admin can see
-    // every branch, so the list is narrowed to what this user may act in.
-    if (user.permissions.superAdmin) return page.content;
-
-    return page.content
-        .where((branch) => user.branchIds.contains(branch.id))
-        .toList(growable: false);
   }
 
   @override

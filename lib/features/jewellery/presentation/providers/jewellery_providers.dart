@@ -213,11 +213,22 @@ final itemByTagProvider = FutureProvider.autoDispose
     );
 
 /// Recently viewed items, newest first. Seeds the Phase 17 read-only cache.
+///
+/// Held in memory only, and tied to the signed-in user. The provider itself
+/// outlives a sign-out, so without watching the user the next person to use the
+/// device saw their colleague's browsing history on the dashboard — showroom
+/// devices are shared between shifts, so that is the normal case, not an edge
+/// one.
 class RecentItemsController extends Notifier<List<JewelleryItem>> {
   static const _limit = 20;
 
   @override
-  List<JewelleryItem> build() => const [];
+  List<JewelleryItem> build() {
+    // Watched for its identity, not its contents: a change of user rebuilds
+    // this notifier and the list starts empty again.
+    ref.watch(currentUserProvider);
+    return const [];
+  }
 
   void record(JewelleryItem item) {
     final without = state.where((existing) => existing.id != item.id);
