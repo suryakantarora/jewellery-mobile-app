@@ -1,0 +1,55 @@
+Final Mobile Architecture
+
+After all phases, the mobile application should look conceptually like this:
+
+
+
+                    MOBILE APP
+                        │
+                 Authentication
+                        │
+                 Tenant Context
+                        │
+                 Branch Context
+                        │
+                  Role / Access
+                        │
+        ┌───────────────┼────────────────┐
+        │               │                │
+    Dashboard       Operations       Notifications
+        │               │
+        │       ┌───────┼────────┐
+        │       │       │        │
+        │    Inventory Scanner Transfers
+        │       │       │        │
+        │       └───────┼────────┘
+        │               │
+        │        ┌──────┼───────┐
+        │        │      │       │
+        │      Repair Customer Warehouse
+        │
+        └──────────── Reports
+
+
+
+For the first usable version, don't implement all 17 phases before testing the app.
+
+I'd target this MVP:
+
+Phase 1  Foundation
+   ↓
+Phase 2  Authentication
+   ↓
+Phase 3  Dashboard
+   ↓
+Phase 4  Jewellery Digital Passport
+   ↓
+Phase 5  Inventory
+   ↓
+Phase 6  Barcode / QR Scanner
+   ↓
+Phase 7  Stock Transfer
+   ↓
+Phase 8  Warehouse / Vault
+
+and so on...

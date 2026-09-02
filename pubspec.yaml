@@ -1,0 +1,94 @@
+name: jewellery_erp
+description: "Jewellery ERP staff mobile application"
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # Networking
+  dio: ^5.7.0
+
+  # Storage
+  flutter_secure_storage: ^9.2.2
+  shared_preferences: ^2.3.3
+
+  # Models
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+
+  # Scanning — barcode and QR via the device camera. RFID stays abstract until
+  # the retailer selects hardware.
+  mobile_scanner: ^6.0.2
+  wakelock_plus: ^1.2.10
+
+  # UI
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
+  flutter_svg: ^2.0.16
+
+  # Connectivity awareness (Phase 17)
+  connectivity_plus: ^6.1.0
+
+  # Utils
+  intl: ^0.20.2
+  uuid: ^4.5.1
+  collection: ^1.19.0
+  logger: ^2.5.0
+  package_info_plus: ^8.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.14
+  freezed: ^2.5.7
+  json_serializable: ^6.9.0
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  # Fonts are vendored, not fetched.
+  #
+  # The google_fonts package downloads faces over the network on first use,
+  # which is wrong for an app that has to work in a warehouse with poor
+  # connectivity and must not make an unexpected outbound request on launch.
+  #
+  # Inter covers Latin. It has no Lao or Thai glyphs, so those scripts are
+  # served by their Noto families as fallbacks — without them, Lao and Thai text
+  # renders as empty boxes on any device lacking a system face.
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+    - family: NotoSansLao
+      fonts:
+        - asset: assets/fonts/NotoSansLao-Regular.ttf
+    - family: NotoSansThai
+      fonts:
+        - asset: assets/fonts/NotoSansThai-Regular.ttf
+    - family: RobotoMono
+      fonts:
+        - asset: assets/fonts/RobotoMono-Regular.ttf

@@ -1,0 +1,92 @@
+{
+  "@@locale": "en",
+  "appName": "Jewellery ERP",
+
+  "actionRetry": "Retry",
+  "actionCancel": "Cancel",
+  "actionConfirm": "Confirm",
+  "actionSave": "Save",
+  "actionClose": "Close",
+  "actionSearch": "Search",
+  "actionScan": "Scan",
+  "actionClear": "Clear",
+  "actionSignIn": "Sign in",
+  "actionSignOut": "Sign out",
+  "actionContinue": "Continue",
+
+  "loginTitle": "Sign in",
+  "loginSubtitle": "Staff access to your branch operations",
+  "loginUsername": "Username",
+  "loginPassword": "Password",
+  "loginFailed": "Incorrect username or password",
+  "loginAccountLocked": "Your account is locked. Contact your administrator.",
+  "loginNoBranch": "No branch is assigned to you. Contact your administrator.",
+  "sessionExpired": "Your session expired. Please sign in again.",
+
+  "branchSelectTitle": "Select branch",
+  "branchSelectSubtitle": "Choose the branch you are working in today",
+  "branchSwitch": "Switch branch",
+  "branchHeadOffice": "Head office",
+
+  "lockTitle": "Session locked",
+  "lockSubtitle": "Unlock to continue where you left off",
+  "lockUnlock": "Unlock",
+
+  "navDashboard": "Dashboard",
+  "navInventory": "Inventory",
+  "navScan": "Scan",
+  "navTransfers": "Transfers",
+  "navMore": "More",
+
+  "sectionOperations": "Operations",
+  "sectionCommercial": "Commercial",
+  "sectionInsight": "Insight",
+  "sectionAccount": "Account",
+
+  "screenWarehouse": "Warehouse & Vault",
+  "screenProcurement": "Procurement",
+  "screenSales": "Sales Assistance",
+  "screenCustomers": "Customers",
+  "screenRepairs": "Repairs",
+  "screenExchange": "Exchange & Buyback",
+  "screenApprovals": "Approvals",
+  "screenReports": "Reports",
+  "screenNotifications": "Notifications",
+  "screenProfile": "Profile",
+  "screenSettings": "Settings",
+
+  "settingsAppearance": "Appearance",
+  "settingsThemeMode": "Theme",
+  "settingsThemeSystem": "Follow system",
+  "settingsThemeLight": "Light",
+  "settingsThemeDark": "Dark",
+  "settingsAccent": "Accent",
+  "settingsLanguage": "Language",
+  "settingsCurrency": "Display currency",
+  "settingsPrivacy": "Privacy",
+  "settingsHideAmounts": "Hide amounts",
+  "settingsHideAmountsHint": "Blur monetary figures on screen",
+  "settingsAbout": "About",
+  "settingsVersion": "Version",
+  "settingsEnvironment": "Environment",
+
+  "stateLoading": "Loading…",
+  "stateEmptyTitle": "Nothing here yet",
+  "stateEmptyMessage": "When there is something to show, it will appear here.",
+  "stateErrorTitle": "Something went wrong",
+  "stateOffline": "You're offline",
+  "stateOfflineAction": "This action needs a connection.",
+  "stateNoPermission": "You do not have permission to view this.",
+  "stateReferenceId": "Reference: {id}",
+  "@stateReferenceId": {
+    "placeholders": { "id": { "type": "String" } }
+  },
+
+  "phaseComingSoon": "Coming in a later phase",
+  "phaseComingSoonMessage": "{feature} is part of the roadmap and is not built yet.",
+  "@phaseComingSoonMessage": {
+    "placeholders": { "feature": { "type": "String" } }
+  },
+
+  "galleryTitle": "Component gallery"
+}

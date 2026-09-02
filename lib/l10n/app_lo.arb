@@ -1,0 +1,92 @@
+{
+  "@@locale": "lo",
+  "appName": "ລະບົບ ERP ເຄື່ອງປະດັບ",
+
+  "actionRetry": "ລອງໃໝ່",
+  "actionCancel": "ຍົກເລີກ",
+  "actionConfirm": "ຢືນຢັນ",
+  "actionSave": "ບັນທຶກ",
+  "actionClose": "ປິດ",
+  "actionSearch": "ຄົ້ນຫາ",
+  "actionScan": "ສະແກນ",
+  "actionClear": "ລ້າງ",
+  "actionSignIn": "ເຂົ້າສູ່ລະບົບ",
+  "actionSignOut": "ອອກຈາກລະບົບ",
+  "actionContinue": "ສືບຕໍ່",
+
+  "loginTitle": "ເຂົ້າສູ່ລະບົບ",
+  "loginSubtitle": "ສຳລັບພະນັກງານເຂົ້າເຖິງການດຳເນີນງານຂອງສາຂາ",
+  "loginUsername": "ຊື່ຜູ້ໃຊ້",
+  "loginPassword": "ລະຫັດຜ່ານ",
+  "loginFailed": "ຊື່ຜູ້ໃຊ້ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ",
+  "loginAccountLocked": "ບັນຊີຂອງທ່ານຖືກລັອກ. ກະລຸນາຕິດຕໍ່ຜູ້ດູແລລະບົບ.",
+  "loginNoBranch": "ທ່ານຍັງບໍ່ໄດ້ຖືກກຳນົດສາຂາ. ກະລຸນາຕິດຕໍ່ຜູ້ດູແລລະບົບ.",
+  "sessionExpired": "ເຊດຊັນໝົດອາຍຸແລ້ວ. ກະລຸນາເຂົ້າສູ່ລະບົບໃໝ່.",
+
+  "branchSelectTitle": "ເລືອກສາຂາ",
+  "branchSelectSubtitle": "ເລືອກສາຂາທີ່ທ່ານປະຕິບັດງານມື້ນີ້",
+  "branchSwitch": "ປ່ຽນສາຂາ",
+  "branchHeadOffice": "ສຳນັກງານໃຫຍ່",
+
+  "lockTitle": "ເຊດຊັນຖືກລັອກ",
+  "lockSubtitle": "ປົດລັອກເພື່ອສືບຕໍ່",
+  "lockUnlock": "ປົດລັອກ",
+
+  "navDashboard": "ໜ້າຫຼັກ",
+  "navInventory": "ສິນຄ້າຄົງຄັງ",
+  "navScan": "ສະແກນ",
+  "navTransfers": "ການໂອນ",
+  "navMore": "ເພີ່ມເຕີມ",
+
+  "sectionOperations": "ການດຳເນີນງານ",
+  "sectionCommercial": "ການຄ້າ",
+  "sectionInsight": "ລາຍງານ",
+  "sectionAccount": "ບັນຊີ",
+
+  "screenWarehouse": "ຄັງສິນຄ້າ ແລະ ຕູ້ນິລະໄພ",
+  "screenProcurement": "ການຈັດຊື້",
+  "screenSales": "ຊ່ວຍການຂາຍ",
+  "screenCustomers": "ລູກຄ້າ",
+  "screenRepairs": "ການສ້ອມແປງ",
+  "screenExchange": "ແລກປ່ຽນ ແລະ ຮັບຊື້ຄືນ",
+  "screenApprovals": "ການອະນຸມັດ",
+  "screenReports": "ລາຍງານ",
+  "screenNotifications": "ການແຈ້ງເຕືອນ",
+  "screenProfile": "ໂປຣໄຟລ໌",
+  "screenSettings": "ການຕັ້ງຄ່າ",
+
+  "settingsAppearance": "ຮູບລັກສະນະ",
+  "settingsThemeMode": "ຮູບແບບສີ",
+  "settingsThemeSystem": "ຕາມລະບົບ",
+  "settingsThemeLight": "ສະຫວ່າງ",
+  "settingsThemeDark": "ມືດ",
+  "settingsAccent": "ສີຫຼັກ",
+  "settingsLanguage": "ພາສາ",
+  "settingsCurrency": "ສະກຸນເງິນທີ່ສະແດງ",
+  "settingsPrivacy": "ຄວາມເປັນສ່ວນຕົວ",
+  "settingsHideAmounts": "ເຊື່ອງຈຳນວນເງິນ",
+  "settingsHideAmountsHint": "ເຮັດໃຫ້ຕົວເລກເງິນມົວ",
+  "settingsAbout": "ກ່ຽວກັບ",
+  "settingsVersion": "ເວີຊັນ",
+  "settingsEnvironment": "ສະພາບແວດລ້ອມ",
+
+  "stateLoading": "ກຳລັງໂຫຼດ…",
+  "stateEmptyTitle": "ຍັງບໍ່ມີຂໍ້ມູນ",
+  "stateEmptyMessage": "ເມື່ອມີຂໍ້ມູນ ຈະສະແດງຢູ່ບ່ອນນີ້.",
+  "stateErrorTitle": "ມີບາງຢ່າງຜິດພາດ",
+  "stateOffline": "ທ່ານອອບໄລນ໌ຢູ່",
+  "stateOfflineAction": "ການດຳເນີນການນີ້ຕ້ອງການການເຊື່ອມຕໍ່.",
+  "stateNoPermission": "ທ່ານບໍ່ມີສິດເບິ່ງຂໍ້ມູນນີ້.",
+  "stateReferenceId": "ລະຫັດອ້າງອີງ: {id}",
+  "@stateReferenceId": {
+    "placeholders": { "id": { "type": "String" } }
+  },
+
+  "phaseComingSoon": "ຈະມາໃນໄລຍະຕໍ່ໄປ",
+  "phaseComingSoonMessage": "{feature} ຢູ່ໃນແຜນງານ ແລະ ຍັງບໍ່ທັນສ້າງ.",
+  "@phaseComingSoonMessage": {
+    "placeholders": { "feature": { "type": "String" } }
+  },
+
+  "galleryTitle": "ຄັງອົງປະກອບ"
+}

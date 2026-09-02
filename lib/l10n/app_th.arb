@@ -1,0 +1,92 @@
+{
+  "@@locale": "th",
+  "appName": "ระบบ ERP เครื่องประดับ",
+
+  "actionRetry": "ลองใหม่",
+  "actionCancel": "ยกเลิก",
+  "actionConfirm": "ยืนยัน",
+  "actionSave": "บันทึก",
+  "actionClose": "ปิด",
+  "actionSearch": "ค้นหา",
+  "actionScan": "สแกน",
+  "actionClear": "ล้าง",
+  "actionSignIn": "เข้าสู่ระบบ",
+  "actionSignOut": "ออกจากระบบ",
+  "actionContinue": "ดำเนินการต่อ",
+
+  "loginTitle": "เข้าสู่ระบบ",
+  "loginSubtitle": "สำหรับพนักงานเข้าถึงการดำเนินงานของสาขา",
+  "loginUsername": "ชื่อผู้ใช้",
+  "loginPassword": "รหัสผ่าน",
+  "loginFailed": "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
+  "loginAccountLocked": "บัญชีของคุณถูกล็อก กรุณาติดต่อผู้ดูแลระบบ",
+  "loginNoBranch": "ยังไม่ได้กำหนดสาขาให้คุณ กรุณาติดต่อผู้ดูแลระบบ",
+  "sessionExpired": "เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง",
+
+  "branchSelectTitle": "เลือกสาขา",
+  "branchSelectSubtitle": "เลือกสาขาที่คุณปฏิบัติงานวันนี้",
+  "branchSwitch": "เปลี่ยนสาขา",
+  "branchHeadOffice": "สำนักงานใหญ่",
+
+  "lockTitle": "เซสชันถูกล็อก",
+  "lockSubtitle": "ปลดล็อกเพื่อดำเนินการต่อ",
+  "lockUnlock": "ปลดล็อก",
+
+  "navDashboard": "แดชบอร์ด",
+  "navInventory": "สินค้าคงคลัง",
+  "navScan": "สแกน",
+  "navTransfers": "การโอน",
+  "navMore": "เพิ่มเติม",
+
+  "sectionOperations": "การดำเนินงาน",
+  "sectionCommercial": "การค้า",
+  "sectionInsight": "รายงาน",
+  "sectionAccount": "บัญชี",
+
+  "screenWarehouse": "คลังสินค้าและตู้นิรภัย",
+  "screenProcurement": "การจัดซื้อ",
+  "screenSales": "ช่วยการขาย",
+  "screenCustomers": "ลูกค้า",
+  "screenRepairs": "งานซ่อม",
+  "screenExchange": "แลกเปลี่ยนและรับซื้อคืน",
+  "screenApprovals": "การอนุมัติ",
+  "screenReports": "รายงาน",
+  "screenNotifications": "การแจ้งเตือน",
+  "screenProfile": "โปรไฟล์",
+  "screenSettings": "การตั้งค่า",
+
+  "settingsAppearance": "รูปลักษณ์",
+  "settingsThemeMode": "ธีม",
+  "settingsThemeSystem": "ตามระบบ",
+  "settingsThemeLight": "สว่าง",
+  "settingsThemeDark": "มืด",
+  "settingsAccent": "สีหลัก",
+  "settingsLanguage": "ภาษา",
+  "settingsCurrency": "สกุลเงินที่แสดง",
+  "settingsPrivacy": "ความเป็นส่วนตัว",
+  "settingsHideAmounts": "ซ่อนจำนวนเงิน",
+  "settingsHideAmountsHint": "เบลอตัวเลขจำนวนเงินบนหน้าจอ",
+  "settingsAbout": "เกี่ยวกับ",
+  "settingsVersion": "เวอร์ชัน",
+  "settingsEnvironment": "สภาพแวดล้อม",
+
+  "stateLoading": "กำลังโหลด…",
+  "stateEmptyTitle": "ยังไม่มีข้อมูล",
+  "stateEmptyMessage": "เมื่อมีข้อมูล จะแสดงที่นี่",
+  "stateErrorTitle": "เกิดข้อผิดพลาด",
+  "stateOffline": "คุณออฟไลน์อยู่",
+  "stateOfflineAction": "การดำเนินการนี้ต้องใช้การเชื่อมต่อ",
+  "stateNoPermission": "คุณไม่มีสิทธิ์ดูข้อมูลนี้",
+  "stateReferenceId": "รหัสอ้างอิง: {id}",
+  "@stateReferenceId": {
+    "placeholders": { "id": { "type": "String" } }
+  },
+
+  "phaseComingSoon": "จะมาในเฟสถัดไป",
+  "phaseComingSoonMessage": "{feature} อยู่ในแผนงานและยังไม่ได้สร้าง",
+  "@phaseComingSoonMessage": {
+    "placeholders": { "feature": { "type": "String" } }
+  },
+
+  "galleryTitle": "คลังคอมโพเนนต์"
+}

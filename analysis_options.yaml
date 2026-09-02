@@ -1,0 +1,29 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # This codebase injects dependencies as named parameters and stores them in
+    # private fields (`AuthApi({required Dio dio}) : _dio = dio`). An
+    # initializing formal cannot express that — it would force the public
+    # parameter name to be `_dio` — so the rule fights a deliberate and
+    # consistent convention rather than catching anything.
+    prefer_initializing_formals: false
+
+    # Enterprise screens are read as much as written; these keep the code
+    # legible as fifteen feature modules land on top of it.
+    always_declare_return_types: true
+    prefer_single_quotes: true
+    require_trailing_commas: true
+    unawaited_futures: true
+    avoid_print: true
+    use_super_parameters: true
+
+analyzer:
+  errors:
+    # An unused import or dead code is a mistake, not a suggestion.
+    unused_import: warning
+    dead_code: warning
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "lib/l10n/app_localizations*.dart"
