@@ -1,0 +1,5 @@
+// Profile build of the "staging" flavour. Flutter requires a build configuration
+// named "Profile-staging" for `flutter run --flavor staging`.
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.profile-staging.xcconfig"
+#include "Generated.xcconfig"
+#include "../Runner/Config/Staging.xcconfig"

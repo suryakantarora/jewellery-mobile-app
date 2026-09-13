@@ -48,6 +48,8 @@ dependencies:
   collection: ^1.19.0
   logger: ^2.5.0
   package_info_plus: ^8.1.2
+  # Opens the store listing from the forced-update gate.
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:

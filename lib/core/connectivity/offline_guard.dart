@@ -13,20 +13,34 @@ import '../errors/app_exception.dart';
 /// Every mutating repository call routes through here, which is what stops one
 /// feature quietly inventing its own offline queue later.
 class OfflineGuard {
-  const OfflineGuard(this._state);
+  /// A guard over a fixed state. Used in tests and wherever a snapshot is fine.
+  const OfflineGuard(ConnectivityState state) : _state = state, _read = null;
 
-  final ConnectivityState _state;
+  /// A guard that consults [read] on every call.
+  ///
+  /// This is what the provider hands to repositories: the guard object never
+  /// changes identity when connectivity flips, so a repository provider that
+  /// depends on it is not rebuilt — and every `FutureProvider` watching that
+  /// repository is not re-fetched — each time the wifi blinks.
+  const OfflineGuard.reading(ConnectivityState Function() read)
+    : _read = read,
+      _state = null;
+
+  final ConnectivityState? _state;
+  final ConnectivityState Function()? _read;
+
+  ConnectivityState get _current => _read?.call() ?? _state!;
 
   /// Runs [action], or throws [OfflineActionException] if the backend is
   /// unreachable.
   Future<T> run<T>(Future<T> Function() action) async {
-    if (!_state.canReachBackend) {
+    if (!_current.canReachBackend) {
       throw const OfflineActionException();
     }
     return action();
   }
 
-  bool get allowsMutation => _state.canReachBackend;
+  bool get allowsMutation => _current.canReachBackend;
 
   /// Operations that must never be queued offline, for reference at call sites
   /// and in review.

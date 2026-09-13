@@ -9,7 +9,10 @@ import '../../data/movement_repository.dart';
 import '../../domain/movement.dart';
 
 final movementRepositoryProvider = Provider<MovementRepository>(
-  (ref) => MovementRepository(ref.watch(apiClientProvider)),
+  (ref) => MovementRepository(
+    ref.watch(apiClientProvider),
+    offlineGuard: ref.watch(offlineGuardProvider),
+  ),
 );
 
 /// Which slice of the transfer list is showing.

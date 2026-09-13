@@ -10,7 +10,10 @@ import '../../data/reference_data_service.dart';
 import '../../domain/jewellery_item.dart';
 
 final jewelleryRepositoryProvider = Provider<JewelleryRepository>(
-  (ref) => JewelleryRepository(ref.watch(apiClientProvider)),
+  (ref) => JewelleryRepository(
+    ref.watch(apiClientProvider),
+    offlineGuard: ref.watch(offlineGuardProvider),
+  ),
 );
 
 /// The reference cache is rebuilt whenever the branch changes, so one branch's

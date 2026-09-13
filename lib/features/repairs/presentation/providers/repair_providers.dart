@@ -6,7 +6,10 @@ import '../../data/repair_repository.dart';
 import '../../domain/repair_models.dart';
 
 final repairRepositoryProvider = Provider<RepairRepository>(
-  (ref) => RepairRepository(ref.watch(apiClientProvider)),
+  (ref) => RepairRepository(
+    ref.watch(apiClientProvider),
+    offlineGuard: ref.watch(offlineGuardProvider),
+  ),
 );
 
 final repairStatusProvider =

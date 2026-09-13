@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/router/app_router.dart';
 import 'core/security/session_controller.dart';
 import 'core/settings/settings_providers.dart';
+import 'core/settings/update_gate.dart';
 import 'core/theme/app_theme.dart';
 import 'l10n/app_localizations.dart';
 import 'shared/widgets/connectivity_banner.dart';
@@ -43,20 +44,24 @@ class JewelleryErpApp extends ConsumerWidget {
       ],
 
       builder: (context, child) {
-        return _ActivityListener(
-          child: MediaQuery.withClampedTextScaling(
-            // Layouts are tested to 1.3×; beyond that dense enterprise screens
-            // stop being usable, so scaling is capped rather than allowed to
-            // break the interface.
-            minScaleFactor: 0.85,
-            maxScaleFactor: 1.3,
-            // The connectivity banner sits above every screen, so no feature
-            // has to remember to show it.
-            child: Column(
-              children: [
-                const ConnectivityBanner(),
-                Expanded(child: child ?? const SizedBox.shrink()),
-              ],
+        // The update gate wraps everything: a retired build sees the blocking
+        // screen and nothing else, before any route can render.
+        return UpdateGate(
+          child: _ActivityListener(
+            child: MediaQuery.withClampedTextScaling(
+              // Layouts are tested to 1.3×; beyond that dense enterprise screens
+              // stop being usable, so scaling is capped rather than allowed to
+              // break the interface.
+              minScaleFactor: 0.85,
+              maxScaleFactor: 1.3,
+              // The connectivity banner sits above every screen, so no feature
+              // has to remember to show it.
+              child: Column(
+                children: [
+                  const ConnectivityBanner(),
+                  Expanded(child: child ?? const SizedBox.shrink()),
+                ],
+              ),
             ),
           ),
         );

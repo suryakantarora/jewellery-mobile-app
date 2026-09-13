@@ -1,0 +1,4 @@
+// Production flavour. Mirrors android/app/build.gradle.kts `prod`.
+PRODUCT_BUNDLE_IDENTIFIER = com.finotechsoftware.jewelleryapp
+APP_DISPLAY_NAME = Jewellery ERP
+FLAVOR = prod

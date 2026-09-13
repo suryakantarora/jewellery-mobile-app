@@ -3,13 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/currencies.dart';
 import '../../../../core/providers.dart';
+import '../../../../core/settings/app_version_service.dart';
 import '../../../../core/settings/settings_providers.dart';
+import '../../../../core/settings/update_gate.dart';
 import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/extensions/context_extensions.dart';
 import '../../../../shared/extensions/widget_extensions.dart';
 import '../../../../shared/widgets/app_backdrop.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/app_dialogs.dart';
 import '../../../../shared/widgets/app_scaffold.dart';
 
 /// Appearance, language, currency and privacy.
@@ -73,15 +76,13 @@ class SettingsScreen extends ConsumerWidget {
             icon: Icons.info_outline,
             child: Column(
               children: [
-                _AboutRow(
-                  label: context.l10n.settingsVersion,
-                  value: '0.1.0 (Phase 1)',
-                ),
+                const _VersionRow(),
                 _AboutRow(
                   label: context.l10n.settingsEnvironment,
                   value: config.environment.label,
                 ),
                 _AboutRow(label: 'API', value: config.apiBaseUrl),
+                const _CheckForUpdatesRow(),
               ],
             ),
           ).entrance(index: 4),
@@ -277,6 +278,88 @@ class _AboutRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The installed version and build number, straight from the platform.
+class _VersionRow extends ConsumerWidget {
+  const _VersionRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final info = ref.watch(installedVersionProvider).valueOrNull;
+    final value = info == null
+        ? '—'
+        : info.buildNumber.isEmpty
+        ? info.version
+        : '${info.version} (${info.buildNumber})';
+    return _AboutRow(label: context.l10n.settingsVersion, value: value);
+  }
+}
+
+/// Re-runs the version check on demand and reports the verdict.
+///
+/// A forced verdict is handled by the gate above the router, so this row only
+/// ever has to speak about "up to date" and "newer available".
+class _CheckForUpdatesRow extends ConsumerStatefulWidget {
+  const _CheckForUpdatesRow();
+
+  @override
+  ConsumerState<_CheckForUpdatesRow> createState() =>
+      _CheckForUpdatesRowState();
+}
+
+class _CheckForUpdatesRowState extends ConsumerState<_CheckForUpdatesRow> {
+  bool _checking = false;
+
+  Future<void> _check() async {
+    setState(() => _checking = true);
+    ref.invalidate(appUpdateProvider);
+    final result = await ref.read(appUpdateProvider.future);
+    if (!mounted) return;
+    setState(() => _checking = false);
+
+    switch (result.status) {
+      case UpdateStatus.unknown:
+        showAppSnackBar(
+          context,
+          message: 'Could not check for updates. Try again when online.',
+        );
+      case UpdateStatus.upToDate:
+        showAppSnackBar(
+          context,
+          message: 'You have the latest version.',
+          tone: SnackTone.success,
+        );
+      case UpdateStatus.updateAvailable:
+      case UpdateStatus.forced:
+        final storeUrl = result.storeUrl;
+        showAppSnackBar(
+          context,
+          message: 'Version ${result.latest ?? ''} is available.',
+          actionLabel: storeUrl == null ? null : 'Update',
+          onAction: storeUrl == null
+              ? null
+              : () => openStore(context, storeUrl),
+        );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.system_update_outlined),
+      title: const Text('Check for updates'),
+      trailing: _checking
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.chevron_right),
+      onTap: _checking ? null : _check,
     );
   }
 }

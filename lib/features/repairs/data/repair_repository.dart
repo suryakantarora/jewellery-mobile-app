@@ -1,12 +1,21 @@
+import '../../../core/connectivity/offline_guard.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_response.dart';
 import '../domain/repair_models.dart';
 
 class RepairRepository {
-  RepairRepository(this._client);
+  RepairRepository(this._client, {OfflineGuard? offlineGuard})
+    : _offlineGuard = offlineGuard;
 
   final ApiClient _client;
+
+  /// Refuses mutations while offline. Null in tests that construct the
+  /// repository directly; the provider always supplies one.
+  final OfflineGuard? _offlineGuard;
+
+  Future<T> _guarded<T>(Future<T> Function() action) =>
+      _offlineGuard?.run(action) ?? action();
 
   Future<PageResponse<RepairJob>> search({
     RepairStatus? status,
@@ -63,31 +72,35 @@ class RepairRepository {
     DateTime? promisedDate,
     List<RepairPhoto> photos = const [],
   }) {
-    return _client.post<RepairJob>(
-      ApiEndpoints.repairs,
-      body: {
-        'customerId': customerId,
-        'branchId': branchId,
-        'itemDescription': itemDescription,
-        if (jewelleryItemId != null) 'jewelleryItemId': jewelleryItemId,
-        if (receivedWeight != null) 'receivedWeight': receivedWeight,
-        if (reportedProblem != null) 'reportedProblem': reportedProblem,
-        if (conditionOnArrival != null)
-          'conditionOnArrival': conditionOnArrival,
-        if (promisedDate != null)
-          'promisedDate': promisedDate.toIso8601String().split('T').first,
-        if (photos.isNotEmpty)
-          'conditionPhotoKeys': RepairJob.encodePhotos(photos),
-      },
-      parse: (data) => RepairJob.fromJson(data! as Map<String, dynamic>),
+    return _guarded(
+      () => _client.post<RepairJob>(
+        ApiEndpoints.repairs,
+        body: {
+          'customerId': customerId,
+          'branchId': branchId,
+          'itemDescription': itemDescription,
+          if (jewelleryItemId != null) 'jewelleryItemId': jewelleryItemId,
+          if (receivedWeight != null) 'receivedWeight': receivedWeight,
+          if (reportedProblem != null) 'reportedProblem': reportedProblem,
+          if (conditionOnArrival != null)
+            'conditionOnArrival': conditionOnArrival,
+          if (promisedDate != null)
+            'promisedDate': promisedDate.toIso8601String().split('T').first,
+          if (photos.isNotEmpty)
+            'conditionPhotoKeys': RepairJob.encodePhotos(photos),
+        },
+        parse: (data) => RepairJob.fromJson(data! as Map<String, dynamic>),
+      ),
     );
   }
 
   Future<RepairJob> _step(String id, String step, Map<String, dynamic> body) =>
-      _client.post<RepairJob>(
-        '${ApiEndpoints.repair(id)}/$step',
-        body: body,
-        parse: (data) => RepairJob.fromJson(data! as Map<String, dynamic>),
+      _guarded(
+        () => _client.post<RepairJob>(
+          '${ApiEndpoints.repair(id)}/$step',
+          body: body,
+          parse: (data) => RepairJob.fromJson(data! as Map<String, dynamic>),
+        ),
       );
 
   Future<RepairJob> inspect(

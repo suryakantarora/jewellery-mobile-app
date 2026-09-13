@@ -38,6 +38,11 @@ class NotificationCenterScreen extends ConsumerWidget {
             onPressed: () async {
               await ref.read(notificationRepositoryProvider).markAllRead();
               ref.invalidate(notificationsProvider);
+              unawaited(
+                ref
+                    .read(unreadNotificationCountControllerProvider.notifier)
+                    .refresh(),
+              );
             },
             child: const Text('Mark all read'),
           ),
@@ -162,6 +167,11 @@ class _NotificationRow extends ConsumerWidget {
             .read(notificationRepositoryProvider)
             .markRead(notification.id);
         ref.invalidate(notificationsProvider);
+        unawaited(
+          ref
+              .read(unreadNotificationCountControllerProvider.notifier)
+              .refresh(),
+        );
 
         final route = NotificationRouter.routeFor(notification);
         if (route != null && context.mounted) {

@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/permissions.dart';
 import '../../../../core/errors/app_exception.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/security/session_controller.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/extensions/context_extensions.dart';
@@ -11,6 +15,9 @@ import '../../../../shared/widgets/app_inputs.dart';
 import '../../domain/jewellery_item.dart';
 import '../../../sales/presentation/screens/price_sheet.dart';
 import '../providers/jewellery_providers.dart';
+import 'repair_intake_sheet.dart';
+import 'reserve_item_sheet.dart';
+import 'transfer_item_sheet.dart';
 
 /// One action available on an item.
 class ItemAction {
@@ -182,6 +189,33 @@ class _ItemActionBarState extends ConsumerState<ItemActionBar> {
     });
   }
 
+  Future<void> _reserve() async {
+    final reserved = await showReserveItemSheet(context, widget.item);
+    if (!reserved || !mounted) return;
+    showAppSnackBar(
+      context,
+      message: '${widget.item.itemCode} reserved',
+      tone: SnackTone.success,
+    );
+    widget.onChanged?.call();
+  }
+
+  Future<void> _transfer() async {
+    final movement = await showTransferItemSheet(context, widget.item);
+    if (movement == null || !mounted) return;
+    widget.onChanged?.call();
+    // Straight to the request, so the dispatcher can approve and dispatch
+    // without hunting for it in the list.
+    unawaited(context.push(AppRoutes.transferDetailPath(movement.id)));
+  }
+
+  Future<void> _startRepair() async {
+    final job = await showRepairIntakeSheet(context, widget.item);
+    if (job == null || !mounted) return;
+    widget.onChanged?.call();
+    unawaited(context.push(AppRoutes.repairPath(job.id)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final permissions = ref.watch(permissionsProvider);
@@ -289,13 +323,12 @@ class _ItemActionBarState extends ConsumerState<ItemActionBar> {
             );
           }
         });
-      default:
-        // Transfer, Reserve and Start repair open flows built in Phases 7,
-        // 10 and 12. Saying so is better than a button that does nothing.
-        showAppSnackBar(
-          context,
-          message: '${action.label} arrives in a later phase',
-        );
+      case 'Reserve':
+        _reserve();
+      case 'Transfer':
+        _transfer();
+      case 'Start repair':
+        _startRepair();
     }
   }
 }

@@ -1,5 +1,6 @@
 import 'package:uuid/uuid.dart';
 
+import '../../../core/connectivity/offline_guard.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_response.dart';
@@ -11,9 +12,17 @@ import '../domain/procurement_models.dart';
 /// Admin-portal job: it needs supplier terms and pricing that do not belong on
 /// a phone at a loading bay.
 class ProcurementRepository {
-  ProcurementRepository(this._client);
+  ProcurementRepository(this._client, {OfflineGuard? offlineGuard})
+    : _offlineGuard = offlineGuard;
 
   final ApiClient _client;
+
+  /// Refuses mutations while offline. Null in tests that construct the
+  /// repository directly; the provider always supplies one.
+  final OfflineGuard? _offlineGuard;
+
+  Future<T> _guarded<T>(Future<T> Function() action) =>
+      _offlineGuard?.run(action) ?? action();
   static const _uuid = Uuid();
 
   Future<PageResponse<PurchaseOrder>> purchaseOrders({
@@ -37,17 +46,20 @@ class ProcurementRepository {
     parse: (data) => PurchaseOrder.fromJson(data! as Map<String, dynamic>),
   );
 
-  Future<PurchaseOrder> approve(String id) => _client.post<PurchaseOrder>(
-    '${ApiEndpoints.purchaseOrder(id)}/approve',
-    parse: (data) => PurchaseOrder.fromJson(data! as Map<String, dynamic>),
+  Future<PurchaseOrder> approve(String id) => _guarded(
+    () => _client.post<PurchaseOrder>(
+      '${ApiEndpoints.purchaseOrder(id)}/approve',
+      parse: (data) => PurchaseOrder.fromJson(data! as Map<String, dynamic>),
+    ),
   );
 
-  Future<PurchaseOrder> reject(String id, String reason) =>
-      _client.post<PurchaseOrder>(
-        '${ApiEndpoints.purchaseOrder(id)}/reject',
-        body: {'reason': reason},
-        parse: (data) => PurchaseOrder.fromJson(data! as Map<String, dynamic>),
-      );
+  Future<PurchaseOrder> reject(String id, String reason) => _guarded(
+    () => _client.post<PurchaseOrder>(
+      '${ApiEndpoints.purchaseOrder(id)}/reject',
+      body: {'reason': reason},
+      parse: (data) => PurchaseOrder.fromJson(data! as Map<String, dynamic>),
+    ),
+  );
 
   Future<PageResponse<GoodsReceipt>> goodsReceipts({
     GoodsReceiptStatus? status,
@@ -74,25 +86,30 @@ class ProcurementRepository {
     required Map<String, dynamic> body,
     required String idempotencyKey,
   }) {
-    return _client.post<GoodsReceipt>(
-      ApiEndpoints.goodsReceipts,
-      body: body,
-      idempotencyKey: idempotencyKey,
-      parse: (data) => GoodsReceipt.fromJson(data! as Map<String, dynamic>),
+    return _guarded(
+      () => _client.post<GoodsReceipt>(
+        ApiEndpoints.goodsReceipts,
+        body: body,
+        idempotencyKey: idempotencyKey,
+        parse: (data) => GoodsReceipt.fromJson(data! as Map<String, dynamic>),
+      ),
     );
   }
 
-  Future<GoodsReceipt> acceptReceipt(String id) => _client.post<GoodsReceipt>(
-    '${ApiEndpoints.goodsReceipts}/$id/accept',
-    parse: (data) => GoodsReceipt.fromJson(data! as Map<String, dynamic>),
+  Future<GoodsReceipt> acceptReceipt(String id) => _guarded(
+    () => _client.post<GoodsReceipt>(
+      '${ApiEndpoints.goodsReceipts}/$id/accept',
+      parse: (data) => GoodsReceipt.fromJson(data! as Map<String, dynamic>),
+    ),
   );
 
-  Future<GoodsReceipt> rejectReceipt(String id, String reason) =>
-      _client.post<GoodsReceipt>(
-        '${ApiEndpoints.goodsReceipts}/$id/reject',
-        body: {'reason': reason},
-        parse: (data) => GoodsReceipt.fromJson(data! as Map<String, dynamic>),
-      );
+  Future<GoodsReceipt> rejectReceipt(String id, String reason) => _guarded(
+    () => _client.post<GoodsReceipt>(
+      '${ApiEndpoints.goodsReceipts}/$id/reject',
+      body: {'reason': reason},
+      parse: (data) => GoodsReceipt.fromJson(data! as Map<String, dynamic>),
+    ),
+  );
 
   Future<List<Supplier>> suppliers() async {
     final page = await _client.getPage<Supplier>(

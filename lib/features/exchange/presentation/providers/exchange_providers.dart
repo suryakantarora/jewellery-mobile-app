@@ -6,7 +6,10 @@ import '../../data/exchange_repository.dart';
 import '../../domain/exchange_models.dart';
 
 final exchangeRepositoryProvider = Provider<ExchangeRepository>(
-  (ref) => ExchangeRepository(ref.watch(apiClientProvider)),
+  (ref) => ExchangeRepository(
+    ref.watch(apiClientProvider),
+    offlineGuard: ref.watch(offlineGuardProvider),
+  ),
 );
 
 final exchangeTypeFilterProvider =

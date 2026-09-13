@@ -1,0 +1,4 @@
+// Staging flavour. Mirrors android/app/build.gradle.kts `staging`.
+PRODUCT_BUNDLE_IDENTIFIER = com.finotechsoftware.jewelleryapp.staging
+APP_DISPLAY_NAME = Jewellery ERP STG
+FLAVOR = staging

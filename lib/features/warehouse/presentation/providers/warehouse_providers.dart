@@ -12,7 +12,10 @@ import '../../../jewellery/domain/jewellery_item.dart';
 import '../../../jewellery/presentation/providers/jewellery_providers.dart';
 
 final warehouseRepositoryProvider = Provider<WarehouseRepository>(
-  (ref) => WarehouseRepository(ref.watch(apiClientProvider)),
+  (ref) => WarehouseRepository(
+    ref.watch(apiClientProvider),
+    offlineGuard: ref.watch(offlineGuardProvider),
+  ),
 );
 
 final stockCountListProvider = FutureProvider.autoDispose<List<StockCount>>((

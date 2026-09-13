@@ -1,0 +1,5 @@
+// Release build of the "dev" flavour. Flutter requires a build configuration
+// named "Release-dev" for `flutter run --flavor dev`.
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release-dev.xcconfig"
+#include "Generated.xcconfig"
+#include "../Runner/Config/Dev.xcconfig"

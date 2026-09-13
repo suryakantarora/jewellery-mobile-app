@@ -106,7 +106,9 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 /// the backend has no idempotent offline design, so a delayed replay would
 /// create phantom stock. Repositories that mutate route through this.
 final offlineGuardProvider = Provider<OfflineGuard>(
-  (ref) => OfflineGuard(ref.watch(connectivityProvider)),
+  // Read lazily, not watched: a watched state would recreate the guard — and
+  // every repository holding it — on each connectivity change.
+  (ref) => OfflineGuard.reading(() => ref.read(connectivityProvider)),
 );
 
 /// Locale-aware formatting for money, weight and dates.

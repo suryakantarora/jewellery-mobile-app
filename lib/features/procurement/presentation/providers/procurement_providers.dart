@@ -6,7 +6,10 @@ import '../../data/procurement_repository.dart';
 import '../../domain/procurement_models.dart';
 
 final procurementRepositoryProvider = Provider<ProcurementRepository>(
-  (ref) => ProcurementRepository(ref.watch(apiClientProvider)),
+  (ref) => ProcurementRepository(
+    ref.watch(apiClientProvider),
+    offlineGuard: ref.watch(offlineGuardProvider),
+  ),
 );
 
 final poStatusFilterProvider =

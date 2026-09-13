@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../../core/connectivity/offline_guard.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_response.dart';
@@ -111,9 +112,17 @@ class ItemSearchFilters {
 }
 
 class JewelleryRepository {
-  JewelleryRepository(this._client);
+  JewelleryRepository(this._client, {OfflineGuard? offlineGuard})
+    : _offlineGuard = offlineGuard;
 
   final ApiClient _client;
+
+  /// Refuses mutations while offline. Null in tests that construct the
+  /// repository directly; the provider always supplies one.
+  final OfflineGuard? _offlineGuard;
+
+  Future<T> _guarded<T>(Future<T> Function() action) =>
+      _offlineGuard?.run(action) ?? action();
 
   Future<PageResponse<JewelleryItem>> search(
     ItemSearchFilters filters, {
@@ -170,10 +179,12 @@ class JewelleryRepository {
   /// list cannot silently record stock in a tray on the other side of the
   /// country.
   Future<JewelleryItem> assignBin(String itemId, String? binId) {
-    return _client.post<JewelleryItem>(
-      '${ApiEndpoints.item(itemId)}/bin',
-      body: {'binId': binId},
-      parse: (data) => JewelleryItem.fromJson(data! as Map<String, dynamic>),
+    return _guarded(
+      () => _client.post<JewelleryItem>(
+        '${ApiEndpoints.item(itemId)}/bin',
+        body: {'binId': binId},
+        parse: (data) => JewelleryItem.fromJson(data! as Map<String, dynamic>),
+      ),
     );
   }
 
@@ -201,20 +212,22 @@ class JewelleryRepository {
     int holdHours = 24,
     String? notes,
   }) {
-    return _client.post<JewelleryItem>(
-      ApiEndpoints.reservations,
-      body: {
-        'jewelleryItemId': itemId,
-        'customerId': customerId,
-        'holdHours': holdHours,
-        if (notes != null) 'notes': notes,
-      },
-      parse: (data) => JewelleryItem.fromJson(data! as Map<String, dynamic>),
+    return _guarded(
+      () => _client.post<JewelleryItem>(
+        ApiEndpoints.reservations,
+        body: {
+          'jewelleryItemId': itemId,
+          'customerId': customerId,
+          'holdHours': holdHours,
+          if (notes != null) 'notes': notes,
+        },
+        parse: (data) => JewelleryItem.fromJson(data! as Map<String, dynamic>),
+      ),
     );
   }
 
   Future<void> releaseReservation(String itemId) =>
-      _client.send(ApiEndpoints.releaseReservation(itemId));
+      _guarded(() => _client.send(ApiEndpoints.releaseReservation(itemId)));
 
   /// Manual status correction. The backend requires a reason and audits it.
   Future<JewelleryItem> changeStatus({
@@ -222,10 +235,12 @@ class JewelleryRepository {
     required ItemStatus target,
     required String reason,
   }) {
-    return _client.post<JewelleryItem>(
-      ApiEndpoints.itemStatus(itemId),
-      body: {'targetStatus': target.code, 'reason': reason},
-      parse: (data) => JewelleryItem.fromJson(data! as Map<String, dynamic>),
+    return _guarded(
+      () => _client.post<JewelleryItem>(
+        ApiEndpoints.itemStatus(itemId),
+        body: {'targetStatus': target.code, 'reason': reason},
+        parse: (data) => JewelleryItem.fromJson(data! as Map<String, dynamic>),
+      ),
     );
   }
 }

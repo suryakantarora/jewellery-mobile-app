@@ -96,7 +96,7 @@ demo and is not wired to this backend.
 | **Staff-directed events** | Only branch-wide broadcasts exist. "Transfer awaiting *your* approval" has no event behind it. |
 | **Backend-managed branding** | Item photos are fully backend-driven. Banners, category artwork and a shop logo are not — no such concept exists yet. |
 | **Design images** | `product` and `jewellery_item` have images; `design` does not. Trivial to mirror. |
-| **iOS build flavours** | Android has dev/staging/prod; iOS builds one target. ~15 minutes once real bundle IDs are known. |
+| **iOS build flavours** | ✅ done — `dev` / `staging` / `prod` schemes and `Debug-*` / `Release-*` / `Profile-*` configurations in `ios/Runner.xcodeproj`, identity in `ios/Runner/Config/*.xcconfig`. `flutter run --flavor dev` works on both platforms; see README “Building”. |
 | **Malformed enum → 500** | Fixed for missing params, unreadable bodies and unknown paths. A malformed *enum* in a nested body may still slip through. |
 
 ---

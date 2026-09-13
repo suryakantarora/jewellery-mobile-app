@@ -1,3 +1,4 @@
+import '../../../core/connectivity/offline_guard.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_response.dart';
@@ -8,9 +9,17 @@ import '../domain/exchange_models.dart';
 /// One workflow distinguished by `exchangeType`, because that is how the
 /// backend models it — two near-identical implementations would only drift.
 class ExchangeRepository {
-  ExchangeRepository(this._client);
+  ExchangeRepository(this._client, {OfflineGuard? offlineGuard})
+    : _offlineGuard = offlineGuard;
 
   final ApiClient _client;
+
+  /// Refuses mutations while offline. Null in tests that construct the
+  /// repository directly; the provider always supplies one.
+  final OfflineGuard? _offlineGuard;
+
+  Future<T> _guarded<T>(Future<T> Function() action) =>
+      _offlineGuard?.run(action) ?? action();
 
   Future<PageResponse<ExchangeRecord>> search({
     ExchangeStatus? status,
@@ -49,19 +58,21 @@ class ExchangeRepository {
     String? declaredPurityId,
     int itemCount = 1,
   }) {
-    return _client.post<ExchangeRecord>(
-      ApiEndpoints.exchanges,
-      body: {
-        'exchangeType': type.code,
-        'customerId': customerId,
-        'branchId': branchId,
-        'metalId': metalId,
-        'description': description,
-        'itemCount': itemCount,
-        if (locationId != null) 'locationId': locationId,
-        if (declaredPurityId != null) 'declaredPurityId': declaredPurityId,
-      },
-      parse: (data) => ExchangeRecord.fromJson(data! as Map<String, dynamic>),
+    return _guarded(
+      () => _client.post<ExchangeRecord>(
+        ApiEndpoints.exchanges,
+        body: {
+          'exchangeType': type.code,
+          'customerId': customerId,
+          'branchId': branchId,
+          'metalId': metalId,
+          'description': description,
+          'itemCount': itemCount,
+          if (locationId != null) 'locationId': locationId,
+          if (declaredPurityId != null) 'declaredPurityId': declaredPurityId,
+        },
+        parse: (data) => ExchangeRecord.fromJson(data! as Map<String, dynamic>),
+      ),
     );
   }
 
@@ -70,11 +81,13 @@ class ExchangeRepository {
     String step, {
     Map<String, dynamic>? body,
     Map<String, dynamic>? query,
-  }) => _client.post<ExchangeRecord>(
-    '${ApiEndpoints.exchange(id)}/$step',
-    body: body,
-    query: query,
-    parse: (data) => ExchangeRecord.fromJson(data! as Map<String, dynamic>),
+  }) => _guarded(
+    () => _client.post<ExchangeRecord>(
+      '${ApiEndpoints.exchange(id)}/$step',
+      body: body,
+      query: query,
+      parse: (data) => ExchangeRecord.fromJson(data! as Map<String, dynamic>),
+    ),
   );
 
   /// Records weights. Net weight comes back derived — never sent.

@@ -1,3 +1,4 @@
+import '../../../core/connectivity/offline_guard.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_response.dart';
@@ -8,9 +9,17 @@ import '../domain/warehouse_models.dart';
 /// Issue and return are **not** here — they are `MovementType.ISSUE` and
 /// `RETURN` on the movements endpoint, so they reuse `MovementRepository`.
 class WarehouseRepository {
-  WarehouseRepository(this._client);
+  WarehouseRepository(this._client, {OfflineGuard? offlineGuard})
+    : _offlineGuard = offlineGuard;
 
   final ApiClient _client;
+
+  /// Refuses mutations while offline. Null in tests that construct the
+  /// repository directly; the provider always supplies one.
+  final OfflineGuard? _offlineGuard;
+
+  Future<T> _guarded<T>(Future<T> Function() action) =>
+      _offlineGuard?.run(action) ?? action();
 
   Future<List<StorageBin>> bins(String locationId) =>
       _client.get<List<StorageBin>>(
@@ -51,13 +60,15 @@ class WarehouseRepository {
 
   /// Opens a count. The response carries the expected item list.
   Future<StockCount> start({required String locationId, String? notes}) {
-    return _client.post<StockCount>(
-      ApiEndpoints.stockCounts,
-      body: {
-        'locationId': locationId,
-        if (notes != null && notes.isNotEmpty) 'notes': notes,
-      },
-      parse: (data) => StockCount.fromJson(data! as Map<String, dynamic>),
+    return _guarded(
+      () => _client.post<StockCount>(
+        ApiEndpoints.stockCounts,
+        body: {
+          'locationId': locationId,
+          if (notes != null && notes.isNotEmpty) 'notes': notes,
+        },
+        parse: (data) => StockCount.fromJson(data! as Map<String, dynamic>),
+      ),
     );
   }
 
@@ -72,25 +83,30 @@ class WarehouseRepository {
     required List<String> foundItemIds,
     String? notes,
   }) {
-    return _client.post<StockCount>(
-      ApiEndpoints.stockCountSubmit(id),
-      body: {
-        'foundItemIds': foundItemIds,
-        if (notes != null && notes.isNotEmpty) 'notes': notes,
-      },
-      parse: (data) => StockCount.fromJson(data! as Map<String, dynamic>),
+    return _guarded(
+      () => _client.post<StockCount>(
+        ApiEndpoints.stockCountSubmit(id),
+        body: {
+          'foundItemIds': foundItemIds,
+          if (notes != null && notes.isNotEmpty) 'notes': notes,
+        },
+        parse: (data) => StockCount.fromJson(data! as Map<String, dynamic>),
+      ),
     );
   }
 
-  Future<StockCount> approve(String id) => _client.post<StockCount>(
-    ApiEndpoints.stockCountApprove(id),
-    parse: (data) => StockCount.fromJson(data! as Map<String, dynamic>),
+  Future<StockCount> approve(String id) => _guarded(
+    () => _client.post<StockCount>(
+      ApiEndpoints.stockCountApprove(id),
+      parse: (data) => StockCount.fromJson(data! as Map<String, dynamic>),
+    ),
   );
 
-  Future<StockCount> cancel(String id, {String? reason}) =>
-      _client.post<StockCount>(
-        ApiEndpoints.stockCountCancel(id),
-        query: {if (reason != null) 'reason': reason},
-        parse: (data) => StockCount.fromJson(data! as Map<String, dynamic>),
-      );
+  Future<StockCount> cancel(String id, {String? reason}) => _guarded(
+    () => _client.post<StockCount>(
+      ApiEndpoints.stockCountCancel(id),
+      query: {if (reason != null) 'reason': reason},
+      parse: (data) => StockCount.fromJson(data! as Map<String, dynamic>),
+    ),
+  );
 }

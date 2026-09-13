@@ -156,9 +156,15 @@ device-local, which makes it invisible to colleagues and close to useless.
 ### 13. No "request information" approval action · Phase 14
 The spec lists it; no backend supports it. I will not simulate it with a rejection.
 
-### 14. No app version endpoint · Phase 17
-Needed for the forced-update gate: `GET /api/v1/app/version?platform=` →
-`minSupported`, `latest`, `storeUrl`.
+### 14. No app version endpoint · Phase 17 — 🟡 app side done, backend in progress
+Needed for the forced-update gate: `GET /api/v1/app/version?platform=ANDROID|IOS&current=<x.y.z>`
+(public, no token) → `{platform, minSupported, latest, storeUrl, message?, forceUpdate}`.
+
+App side is in place (`lib/core/settings/app_version_service.dart`, `update_gate.dart`):
+`forceUpdate: true` blocks the app behind a full-screen update prompt; `latest > current`
+shows a one-off nudge; any failure (404 while the endpoint is unbuilt, offline, malformed body)
+resolves to *unknown* and the app carries on. The backend's `forceUpdate` flag is authoritative;
+`minSupported` is only the fallback when the flag is absent.
 
 ---
 
