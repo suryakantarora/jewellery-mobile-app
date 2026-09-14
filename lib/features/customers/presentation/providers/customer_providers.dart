@@ -6,7 +6,10 @@ import '../../data/customer_repository.dart';
 import '../../domain/customer_models.dart';
 
 final customerRepositoryProvider = Provider<CustomerRepository>(
-  (ref) => CustomerRepository(ref.watch(apiClientProvider)),
+  (ref) => CustomerRepository(
+    ref.watch(apiClientProvider),
+    offlineGuard: ref.watch(offlineGuardProvider),
+  ),
 );
 
 final customerQueryProvider = NotifierProvider<CustomerQueryController, String>(
@@ -52,3 +55,10 @@ final myFollowUpsProvider = FutureProvider.autoDispose<List<FollowUp>>((ref) {
   ref.watch(currentUserProvider);
   return ref.watch(customerRepositoryProvider).myFollowUps();
 });
+
+/// A customer's wishlist. Invalidated after every add or remove.
+final customerWishlistProvider = FutureProvider.autoDispose
+    .family<List<WishlistEntry>, String>(
+      (ref, customerId) =>
+          ref.watch(customerRepositoryProvider).wishlist(customerId),
+    );

@@ -77,6 +77,35 @@ class ApiClient {
     }
   }
 
+  /// Multipart upload of one file, for `POST /files`.
+  ///
+  /// The bytes go up as a `file` part; the response is enveloped like every
+  /// other JSON endpoint, so [parse] receives the unwrapped payload.
+  Future<T> upload<T>(
+    String path, {
+    required List<int> bytes,
+    required String fileName,
+    String? contentType,
+    Map<String, dynamic>? fields,
+    required T Function(Object? data) parse,
+    CancelToken? cancelToken,
+  }) async {
+    final form = FormData.fromMap({
+      ...?fields,
+      'file': MultipartFile.fromBytes(
+        bytes,
+        filename: fileName,
+        contentType: contentType == null
+            ? null
+            : DioMediaType.parse(contentType),
+      ),
+    });
+    return _send(
+      () => _dio.post<dynamic>(path, data: form, cancelToken: cancelToken),
+      parse,
+    );
+  }
+
   Future<T> post<T>(
     String path, {
     Object? body,

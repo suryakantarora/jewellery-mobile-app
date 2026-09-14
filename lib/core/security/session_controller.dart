@@ -8,6 +8,7 @@ import '../../shared/models/organization.dart';
 import '../../shared/models/user.dart';
 import '../providers.dart';
 import '../storage/storage_keys.dart';
+import '../../features/notifications/data/push_registration_service.dart';
 import 'session_state.dart';
 
 /// Owns every transition of [SessionState].
@@ -192,6 +193,14 @@ class SessionController extends Notifier<SessionState>
   }) async {
     _idleTimer?.cancel();
     _signingOut = true;
+
+    // Revoke the push device while the bearer token is still valid; after
+    // sign-out the DELETE would 401 and the device would keep receiving mail.
+    try {
+      await ref.read(pushRegistrationServiceProvider).deregister();
+    } on Object {
+      // Best-effort; the server sweeps dead tokens on the next failed send.
+    }
 
     try {
       await _auth.signOut();

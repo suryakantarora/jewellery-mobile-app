@@ -66,6 +66,10 @@ class ItemFiltersController extends Notifier<ItemSearchFilters> {
   void setPurity(String? value) => state = state.copyWith(purityId: value);
   void setProduct(String? value) => state = state.copyWith(productId: value);
 
+  /// Both bounds at once, so a swapped pair can never be sent half-applied.
+  void setPriceRange({num? min, num? max}) =>
+      state = state.copyWith(minPrice: min, maxPrice: max);
+
   void clearFilters() => state = state.cleared();
 
   void replace(ItemSearchFilters filters) => state = filters;

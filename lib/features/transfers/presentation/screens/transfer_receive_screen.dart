@@ -11,6 +11,7 @@ import '../../../../shared/widgets/app_dialogs.dart';
 import '../../../../shared/widgets/app_inputs.dart';
 import '../../../../shared/widgets/async_value_view.dart';
 import '../../../../shared/widgets/status_badge.dart';
+import '../../../jewellery/domain/jewellery_item.dart';
 import '../../../scanner/domain/scan_session.dart';
 import '../../../scanner/presentation/providers/scanner_providers.dart';
 import '../../../scanner/presentation/screens/scan_screen.dart';
@@ -37,6 +38,10 @@ class TransferReceiveScreen extends ConsumerStatefulWidget {
 class _TransferReceiveScreenState extends ConsumerState<TransferReceiveScreen> {
   ScanSession? _session;
   final Map<String, String> _notes = {};
+
+  /// Items the scanner resolved, keyed by item code, so rows can name what was
+  /// scanned rather than echo a barcode.
+  final Map<String, JewelleryItem> _items = {};
   bool _busy = false;
 
   ScanSession _sessionFor(Movement movement) {
@@ -48,7 +53,7 @@ class _TransferReceiveScreenState extends ConsumerState<TransferReceiveScreen> {
   Future<void> _scan(Movement movement) async {
     final session = _sessionFor(movement);
 
-    final scanned = await Navigator.of(context).push<List<String>>(
+    final result = await Navigator.of(context).push<BulkScanResult>(
       MaterialPageRoute(
         builder: (_) => ScanScreen(
           request: ScanRequest(
@@ -60,9 +65,12 @@ class _TransferReceiveScreenState extends ConsumerState<TransferReceiveScreen> {
       ),
     );
 
-    if (scanned == null) return;
+    if (result == null) return;
     setState(() {
-      for (final tag in scanned) {
+      _items.addAll(result.itemsByCode);
+      // Canonical codes: a barcode that resolved to an item on this transfer
+      // counts as that item, not as an unexpected string.
+      for (final tag in result.canonicalTags) {
         session.record(tag);
       }
     });
@@ -224,6 +232,7 @@ class _TransferReceiveScreenState extends ConsumerState<TransferReceiveScreen> {
               for (final line in movement.lines)
                 _ExpectedRow(
                   code: line.itemCode,
+                  name: _items[line.itemCode]?.productName,
                   weight: formatters.weight(line.dispatchedWeight),
                   scanned: session.matched.contains(line.itemCode),
                   note: _notes[line.itemCode],
@@ -265,7 +274,19 @@ class _TransferReceiveScreenState extends ConsumerState<TransferReceiveScreen> {
                         ),
                         AppSpacing.wGapMd,
                         Expanded(
-                          child: Text(code, style: AppTypography.mono(context)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(code, style: AppTypography.mono(context)),
+                              if (_items[code]?.productName case final name?)
+                                Text(
+                                  name,
+                                  style: context.text.labelSmall?.copyWith(
+                                    color: context.scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                         IconButton(
                           icon: const Icon(Icons.close, size: 18),
@@ -349,6 +370,7 @@ class _Counter extends StatelessWidget {
 class _ExpectedRow extends StatelessWidget {
   const _ExpectedRow({
     required this.code,
+    required this.name,
     required this.weight,
     required this.scanned,
     required this.note,
@@ -356,6 +378,9 @@ class _ExpectedRow extends StatelessWidget {
   });
 
   final String code;
+
+  /// Known once the item has been scanned and resolved; null before that.
+  final String? name;
   final String weight;
   final bool scanned;
   final String? note;
@@ -378,6 +403,15 @@ class _ExpectedRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(code, style: AppTypography.mono(context)),
+                if (name != null)
+                  Text(
+                    name!,
+                    style: context.text.labelSmall?.copyWith(
+                      color: context.scheme.onSurfaceVariant,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 if (note != null)
                   Text(
                     note!,

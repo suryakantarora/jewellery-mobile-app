@@ -27,3 +27,6 @@ analyzer:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
     - "lib/l10n/app_localizations*.dart"
+    # Swift Package Manager checks out firebase's pub packages (Dart examples
+    # and tests included) under build/ios/SourcePackages; not our code.
+    - "build/**"

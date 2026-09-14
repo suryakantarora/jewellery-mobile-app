@@ -1,19 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers.dart';
 import '../../../../core/security/session_controller.dart';
-import '../../../exchange/presentation/providers/exchange_providers.dart';
-import '../../../procurement/presentation/providers/procurement_providers.dart';
-import '../../../transfers/presentation/providers/transfer_providers.dart';
-import '../../../warehouse/presentation/providers/warehouse_providers.dart';
-import '../../data/approval_aggregator.dart';
+import '../../data/approval_repository.dart';
 import '../../domain/approval_models.dart';
 
-final approvalAggregatorProvider = Provider<ApprovalAggregator>(
-  (ref) => ApprovalAggregator(
-    movements: ref.watch(movementRepositoryProvider),
-    procurement: ref.watch(procurementRepositoryProvider),
-    exchanges: ref.watch(exchangeRepositoryProvider),
-    warehouse: ref.watch(warehouseRepositoryProvider),
+final approvalRepositoryProvider = Provider<ApprovalRepository>(
+  (ref) => ApprovalRepository(
+    ref.watch(apiClientProvider),
+    offlineGuard: ref.watch(offlineGuardProvider),
   ),
 );
 
@@ -28,14 +23,12 @@ class ApprovalFilterController extends Notifier<ApprovalKind?> {
   void set(ApprovalKind? kind) => state = kind;
 }
 
+/// The whole queue for the current branch, oldest first, from the unified
+/// endpoint. Filtering by type happens client-side so the chips stay instant.
 final pendingApprovalsProvider = FutureProvider.autoDispose<List<ApprovalItem>>(
-  (ref) async {
-    final permissions = ref.watch(permissionsProvider);
+  (ref) {
     final branch = ref.watch(currentBranchProvider);
-
-    return ref
-        .watch(approvalAggregatorProvider)
-        .pending(permissions: permissions, branchId: branch?.id);
+    return ref.watch(approvalRepositoryProvider).pending(branchId: branch?.id);
   },
 );
 
@@ -49,14 +42,17 @@ final filteredApprovalsProvider = Provider.autoDispose<List<ApprovalItem>>((
   return all.where((item) => item.kind == filter).toList(growable: false);
 });
 
-/// Counts per type, for the filter chips.
-final approvalCountsProvider = Provider.autoDispose<Map<ApprovalKind, int>>((
+/// Counts per type from `GET /approvals/pending/count` — the badge source.
+final approvalCountsProvider = FutureProvider.autoDispose<ApprovalCounts>((
   ref,
 ) {
-  final all = ref.watch(pendingApprovalsProvider).valueOrNull ?? const [];
-  final counts = <ApprovalKind, int>{};
-  for (final item in all) {
-    counts[item.kind] = (counts[item.kind] ?? 0) + 1;
-  }
-  return counts;
+  final branch = ref.watch(currentBranchProvider);
+  return ref.watch(approvalRepositoryProvider).counts(branchId: branch?.id);
 });
+
+/// The information thread on one pending item.
+final approvalInformationProvider = FutureProvider.autoDispose
+    .family<List<InformationRequest>, ({ApprovalKind kind, String id})>(
+      (ref, key) =>
+          ref.watch(approvalRepositoryProvider).information(key.kind, key.id),
+    );

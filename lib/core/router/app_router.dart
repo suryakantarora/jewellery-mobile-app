@@ -16,6 +16,8 @@ import '../../features/jewellery/presentation/screens/item_search_screen.dart';
 import '../../features/jewellery/presentation/screens/item_passport_screen.dart';
 import '../../features/reports/presentation/screens/reports_screen.dart';
 import '../../features/repairs/presentation/screens/repair_screens.dart';
+// --- Phase 10: sales assistance -------------------------------------------
+import '../../features/sales/presentation/screens/sales_assistance_screen.dart';
 import '../../features/scanner/presentation/providers/scanner_providers.dart';
 import '../../features/exchange/presentation/screens/exchange_screens.dart';
 import '../../features/catalogue/presentation/screens/catalogue_screen.dart';
@@ -33,7 +35,6 @@ import '../../features/settings/presentation/screens/more_screen.dart';
 import '../../features/settings/presentation/screens/profile_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../shared/navigation/app_shell.dart';
-import '../../shared/widgets/app_scaffold.dart';
 import '../providers.dart';
 import '../security/session_controller.dart';
 import 'app_routes.dart';
@@ -190,11 +191,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   ),
                   GoRoute(
                     path: 'sales',
-                    builder: (_, __) => const PhasePlaceholderScreen(
-                      title: 'Sales Assistance',
-                      phase: 10,
-                      icon: Icons.point_of_sale_outlined,
-                    ),
+                    builder: (_, __) => const SalesAssistanceScreen(),
                   ),
                   GoRoute(
                     path: 'customers',

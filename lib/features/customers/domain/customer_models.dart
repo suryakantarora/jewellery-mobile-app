@@ -233,3 +233,68 @@ class FollowUp {
     notes: json['notes'] as String?,
   );
 }
+
+/// One entry on a customer's wishlist, `GET /customers/{id}/wishlist`.
+///
+/// An entry names a specific piece, or only a product or design when the
+/// customer wants "one like this" and no piece has been picked yet.
+class WishlistEntry {
+  const WishlistEntry({
+    required this.id,
+    required this.customerId,
+    this.jewelleryItemId,
+    this.productId,
+    this.designId,
+    this.itemCode,
+    this.productName,
+    this.designName,
+    this.currentPrice,
+    this.currency,
+    this.itemStatus,
+    this.primaryImageKey,
+    this.note,
+    this.addedBy,
+    this.createdAt,
+  });
+
+  final String id;
+  final String customerId;
+  final String? jewelleryItemId;
+  final String? productId;
+  final String? designId;
+  final String? itemCode;
+  final String? productName;
+  final String? designName;
+
+  /// The server's figure; never recomputed here.
+  final double? currentPrice;
+  final String? currency;
+  final String? itemStatus;
+  final String? primaryImageKey;
+  final String? note;
+  final String? addedBy;
+  final DateTime? createdAt;
+
+  /// True when the entry points at a real piece rather than a product/design.
+  bool get hasItem => jewelleryItemId != null && jewelleryItemId!.isNotEmpty;
+
+  String get title => itemCode ?? productName ?? designName ?? 'Wishlist entry';
+
+  factory WishlistEntry.fromJson(Map<String, dynamic> json) => WishlistEntry(
+    id: json['id'] as String? ?? '',
+    customerId: json['customerId'] as String? ?? '',
+    jewelleryItemId: json['jewelleryItemId'] as String?,
+    productId: json['productId'] as String?,
+    designId: json['designId'] as String?,
+    itemCode: json['itemCode'] as String?,
+    productName: json['productName'] as String?,
+    designName: json['designName'] as String?,
+    currentPrice: (json['currentPrice'] as num?)?.toDouble(),
+    currency: json['currency'] as String?,
+    itemStatus: json['itemStatus'] as String?,
+    primaryImageKey: json['primaryImageKey'] as String?,
+    note: json['note'] as String?,
+    addedBy: json['addedBy'] as String?,
+    createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+  );
+}

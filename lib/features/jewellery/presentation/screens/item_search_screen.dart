@@ -214,6 +214,18 @@ class _FilterBar extends ConsumerWidget {
         () => controller.setLocation(null),
       );
     }
+    if (filters.hasPriceRange) {
+      final min = filters.minPrice;
+      final max = filters.maxPrice;
+      addChip(
+        min != null && max != null
+            ? '$min – $max'
+            : min != null
+            ? 'From $min'
+            : 'Up to $max',
+        () => controller.setPriceRange(),
+      );
+    }
 
     return SizedBox(
       height: 44,

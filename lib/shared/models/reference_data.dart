@@ -77,6 +77,7 @@ class Product {
     this.defaultMetalId,
     this.defaultPurityId,
     this.nominalGrossWeight,
+    this.primaryImageKey,
   });
 
   final String id;
@@ -89,6 +90,10 @@ class Product {
   final String? defaultPurityId;
   final double? nominalGrossWeight;
 
+  /// Catalogue artwork shared by every item made to this product. Fetch the
+  /// bytes via `GET /files?key=`.
+  final String? primaryImageKey;
+
   factory Product.fromJson(Map<String, dynamic> json) => Product(
     id: json['id'] as String? ?? '',
     sku: json['sku'] as String? ?? '',
@@ -99,6 +104,7 @@ class Product {
     defaultMetalId: json['defaultMetalId'] as String?,
     defaultPurityId: json['defaultPurityId'] as String?,
     nominalGrossWeight: (json['nominalGrossWeight'] as num?)?.toDouble(),
+    primaryImageKey: json['primaryImageKey'] as String?,
   );
 }
 
@@ -108,6 +114,7 @@ class Design {
     required this.designCode,
     required this.name,
     this.productTypeId,
+    this.primaryImageKey,
   });
 
   final String id;
@@ -115,11 +122,15 @@ class Design {
   final String name;
   final String? productTypeId;
 
+  /// The design's reference image, when one has been uploaded.
+  final String? primaryImageKey;
+
   factory Design.fromJson(Map<String, dynamic> json) => Design(
     id: json['id'] as String? ?? '',
     designCode: json['designCode'] as String? ?? '',
     name: json['name'] as String? ?? '',
     productTypeId: json['productTypeId'] as String?,
+    primaryImageKey: json['primaryImageKey'] as String?,
   );
 }
 

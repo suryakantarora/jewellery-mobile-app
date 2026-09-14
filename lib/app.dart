@@ -7,6 +7,7 @@ import 'core/security/session_controller.dart';
 import 'core/settings/settings_providers.dart';
 import 'core/settings/update_gate.dart';
 import 'core/theme/app_theme.dart';
+import 'features/notifications/data/push_registration_service.dart';
 import 'l10n/app_localizations.dart';
 import 'shared/widgets/connectivity_banner.dart';
 
@@ -24,6 +25,10 @@ class JewelleryErpApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
     final router = ref.watch(routerProvider);
+
+    // Side-effect only: keeps FCM registration in step with the session for
+    // the life of the app. A no-op when Firebase is not configured.
+    ref.watch(pushRegistrationProvider);
 
     return MaterialApp.router(
       title: 'Jewellery ERP',

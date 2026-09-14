@@ -23,12 +23,6 @@ abstract final class AppConstants {
   /// from the decoder rather than a second physical scan.
   static const scanDebounce = Duration(milliseconds: 1500);
 
-  /// How long dashboard figures stay fresh before a refresh re-fetches them.
-  static const dashboardCacheTtl = Duration(seconds: 60);
-
-  /// How long report figures stay fresh.
-  static const reportCacheTtl = Duration(minutes: 5);
-
   /// A metal rate older than this is flagged as stale before it is quoted.
   static const metalRateStaleAfter = Duration(hours: 4);
 }

@@ -67,6 +67,21 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>Scan barcodes, QR codes and tags on jewellery items.</string>
+	<string>Scan barcodes, QR codes and tags on jewellery items, and photograph stock.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Attach photographs of jewellery items from your library.</string>
+	<!-- Push notifications (FCM). Requires the Push Notifications capability
+	     (aps-environment entitlement) in Xcode and a GoogleService-Info.plist
+	     per flavour; see docs/PHASE-15-DESIGN.md §4. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+	<!-- firebase_messaging swizzles the app delegate to forward the APNs token
+	     and notification callbacks. Leave the proxy enabled (the default); set
+	     FirebaseAppDelegateProxyEnabled=false only if AppDelegate is changed to
+	     forward them by hand. -->
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<true/>
 </dict>
 </plist>

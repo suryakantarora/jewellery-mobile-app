@@ -42,6 +42,15 @@ dependencies:
   # Connectivity awareness (Phase 17)
   connectivity_plus: ^6.1.0
 
+  # Push notifications (Phase 15 §4). Firebase is optional at runtime: without
+  # google-services.json / GoogleService-Info.plist the app falls back to
+  # polling and logs once. See docs/PHASE-15-DESIGN.md.
+  firebase_core: ^4.4.0
+  firebase_messaging: ^16.1.0
+
+  # Item photos: camera or gallery capture for the passport image gallery.
+  image_picker: ^1.2.1
+
   # Utils
   intl: ^0.20.2
   uuid: ^4.5.1

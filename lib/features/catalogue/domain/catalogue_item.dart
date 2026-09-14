@@ -20,6 +20,7 @@ class CatalogueItem {
     this.totalCarat,
     this.hallmarkNumber,
     this.primaryImageKey,
+    this.fallbackImageKey,
     this.price,
     this.currency,
   });
@@ -38,6 +39,12 @@ class CatalogueItem {
   final double? totalCarat;
   final String? hallmarkNumber;
   final String? primaryImageKey;
+
+  /// Design or product artwork, for pieces without their own photo.
+  final String? fallbackImageKey;
+
+  /// What to show: the piece itself, else its catalogue artwork.
+  String? get displayImageKey => primaryImageKey ?? fallbackImageKey;
 
   /// Priced live by the backend. Null when it could not be priced — usually a
   /// missing metal rate — and the screen says so rather than showing a zero.
@@ -62,6 +69,7 @@ class CatalogueItem {
     totalCarat: (json['totalCarat'] as num?)?.toDouble(),
     hallmarkNumber: json['hallmarkNumber'] as String?,
     primaryImageKey: json['primaryImageKey'] as String?,
+    fallbackImageKey: json['fallbackImageKey'] as String?,
     price: (json['price'] as num?)?.toDouble(),
     currency: json['currency'] as String?,
   );

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:jewellery_erp/shared/models/user.dart';
 import 'package:jewellery_erp/core/constants/permissions.dart';
 import 'package:jewellery_erp/features/authentication/data/auth_api.dart';
 import 'package:jewellery_erp/shared/models/organization.dart';
@@ -120,6 +121,33 @@ void main() {
         'type': 'SOMETHING_NEW',
       });
       expect(location.type, LocationType.showroom);
+    });
+  });
+
+  group('Tenant context', () {
+    test('AppUser reads companyId and companyName when present', () {
+      final user = AppUser.fromJson({
+        'id': 'u1',
+        'username': 'somchai',
+        'fullName': 'Somchai',
+        'permissions': <String>[],
+        'companyId': 'c1',
+        'companyName': 'Phimpha Jewellery',
+      });
+      expect(user.companyId, 'c1');
+      expect(user.companyName, 'Phimpha Jewellery');
+      expect(user.isPlatformUser, isFalse);
+    });
+
+    test('a user without a company is a platform user (older payloads too)', () {
+      final user = AppUser.fromJson({
+        'id': 'u1',
+        'username': 'admin',
+        'fullName': 'Admin',
+        'permissions': <String>[],
+      });
+      expect(user.companyId, isNull);
+      expect(user.isPlatformUser, isTrue);
     });
   });
 }

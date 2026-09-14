@@ -4,13 +4,14 @@ import '../../../core/connectivity/offline_guard.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_response.dart';
+import '../domain/bulk_tag_resolution.dart';
 import '../domain/jewellery_item.dart';
 
 /// Filters for the item search, mirroring the backend's query parameters.
 ///
-/// Deliberately has no price range: `GET /inventory/items` exposes no
-/// `minPrice`/`maxPrice`, and filtering a paged list client-side would silently
-/// lie about the result set.
+/// The price range is applied server-side (`minPrice`/`maxPrice`, inclusive,
+/// on `currentPrice`), so a filtered page and its total count always agree.
+/// Nothing here filters client-side.
 class ItemSearchFilters {
   const ItemSearchFilters({
     this.search,
@@ -20,6 +21,8 @@ class ItemSearchFilters {
     this.purityId,
     this.productId,
     this.status,
+    this.minPrice,
+    this.maxPrice,
   });
 
   final String? search;
@@ -30,21 +33,31 @@ class ItemSearchFilters {
   final String? productId;
   final ItemStatus? status;
 
+  /// Inclusive bounds on `currentPrice`, in the branch currency.
+  final num? minPrice;
+  final num? maxPrice;
+
+  bool get hasPriceRange => minPrice != null || maxPrice != null;
+
   bool get hasFilters =>
       locationId != null ||
       metalId != null ||
       purityId != null ||
       productId != null ||
-      status != null;
+      status != null ||
+      hasPriceRange;
 
   /// Filters excluding the free-text query, for the "clear filters" affordance.
-  int get activeCount => [
-    locationId,
-    metalId,
-    purityId,
-    productId,
-    status,
-  ].where((value) => value != null).length;
+  /// A price range counts once however many bounds are set.
+  int get activeCount =>
+      [
+        locationId,
+        metalId,
+        purityId,
+        productId,
+        status,
+      ].where((value) => value != null).length +
+      (hasPriceRange ? 1 : 0);
 
   ItemSearchFilters copyWith({
     Object? search = _unset,
@@ -54,6 +67,8 @@ class ItemSearchFilters {
     Object? purityId = _unset,
     Object? productId = _unset,
     Object? status = _unset,
+    Object? minPrice = _unset,
+    Object? maxPrice = _unset,
   }) {
     return ItemSearchFilters(
       search: search == _unset ? this.search : search as String?,
@@ -65,6 +80,8 @@ class ItemSearchFilters {
       purityId: purityId == _unset ? this.purityId : purityId as String?,
       productId: productId == _unset ? this.productId : productId as String?,
       status: status == _unset ? this.status : status as ItemStatus?,
+      minPrice: minPrice == _unset ? this.minPrice : minPrice as num?,
+      maxPrice: maxPrice == _unset ? this.maxPrice : maxPrice as num?,
     );
   }
 
@@ -85,7 +102,9 @@ class ItemSearchFilters {
       other.metalId == metalId &&
       other.purityId == purityId &&
       other.productId == productId &&
-      other.status == status;
+      other.status == status &&
+      other.minPrice == minPrice &&
+      other.maxPrice == maxPrice;
 
   @override
   int get hashCode => Object.hash(
@@ -96,6 +115,8 @@ class ItemSearchFilters {
     purityId,
     productId,
     status,
+    minPrice,
+    maxPrice,
   );
 
   Map<String, dynamic> toQuery({required int page, required int size}) => {
@@ -108,6 +129,8 @@ class ItemSearchFilters {
     if (purityId != null) 'purityId': purityId,
     if (productId != null) 'productId': productId,
     if (status != null) 'status': status!.code,
+    if (minPrice != null) 'minPrice': minPrice,
+    if (maxPrice != null) 'maxPrice': maxPrice,
   };
 }
 
@@ -199,6 +222,56 @@ class JewelleryRepository {
       parse: (data) => JewelleryItem.fromJson(data! as Map<String, dynamic>),
       cancelToken: cancelToken,
     );
+  }
+
+  /// Resolves many scanned values in one round trip per chunk.
+  ///
+  /// The endpoint accepts up to 500 tags; [byTagsChunkSize] stays well under
+  /// that so a payload of item responses never approaches the size at which a
+  /// mobile connection starts timing out. Duplicates are removed client-side
+  /// first so a tag re-read across chunks cannot resolve twice.
+  static const byTagsChunkSize = 200;
+  static const _byTagsPath = '/inventory/items/by-tags';
+
+  Future<BulkTagResolution> byTags(
+    List<String> tags, {
+    CancelToken? cancelToken,
+  }) async {
+    var result = BulkTagResolution.empty;
+    for (final chunk in chunkTags(tags)) {
+      final part = await _client.post<BulkTagResolution>(
+        _byTagsPath,
+        body: {'tags': chunk},
+        parse: (data) => BulkTagResolution.fromJson(
+          data is Map<String, dynamic> ? data : const {},
+        ),
+        cancelToken: cancelToken,
+      );
+      result = result.merge(part);
+    }
+    return result;
+  }
+
+  /// Distinct, non-empty tags in first-seen order, split into request-sized
+  /// chunks. Pure, so it is testable without a client.
+  static List<List<String>> chunkTags(
+    Iterable<String> tags, {
+    int size = byTagsChunkSize,
+  }) {
+    assert(size > 0, 'chunk size must be positive');
+    final distinct = <String>{};
+    for (final tag in tags) {
+      final trimmed = tag.trim();
+      if (trimmed.isNotEmpty) distinct.add(trimmed);
+    }
+    final ordered = distinct.toList(growable: false);
+    return [
+      for (var i = 0; i < ordered.length; i += size)
+        ordered.sublist(
+          i,
+          i + size > ordered.length ? ordered.length : i + size,
+        ),
+    ];
   }
 
   Future<ItemPassport> passport(String id) => _client.get<ItemPassport>(

@@ -435,6 +435,9 @@ class Customer360Screen extends ConsumerWidget {
               ),
               AppSpacing.gapXl,
 
+              _WishlistSection(customerId: customerId),
+              AppSpacing.gapLg,
+
               if (data.openFollowUps.isNotEmpty) ...[
                 SectionCard(
                   title: 'Open follow-ups (${data.openFollowUps.length})',
@@ -554,5 +557,133 @@ class Customer360Screen extends ConsumerWidget {
         showAppSnackBar(context, message: error.message, tone: SnackTone.error);
       }
     }
+  }
+}
+
+/// The customer's wishlist: pieces they asked about, or products and designs
+/// they want "one like".
+///
+/// Tapping a piece opens its passport; an entry with only a product or design
+/// has no passport to open and says so. Swipe or the icon removes an entry.
+class _WishlistSection extends ConsumerWidget {
+  const _WishlistSection({required this.customerId});
+
+  final String customerId;
+
+  Future<void> _remove(
+    BuildContext context,
+    WidgetRef ref,
+    WishlistEntry entry,
+  ) async {
+    try {
+      await ref
+          .read(customerRepositoryProvider)
+          .removeFromWishlist(customerId, entry.id);
+      ref.invalidate(customerWishlistProvider(customerId));
+      if (context.mounted) {
+        showAppSnackBar(
+          context,
+          message: '${entry.title} removed from wishlist',
+          tone: SnackTone.success,
+        );
+      }
+    } on AppException catch (error) {
+      ref.invalidate(customerWishlistProvider(customerId));
+      if (context.mounted) {
+        showAppSnackBar(context, message: error.message, tone: SnackTone.error);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final wishlist = ref.watch(customerWishlistProvider(customerId));
+    final formatters = ref.watch(formattersProvider);
+    final canManage = ref.watch(permissionsProvider).hasAny({
+      Permission.customerManage,
+      Permission.saleCreate,
+    });
+    final count = wishlist.valueOrNull?.length;
+
+    return SectionCard(
+      title: count == null ? 'Wishlist' : 'Wishlist ($count)',
+      icon: Icons.favorite_border,
+      child: AsyncValueView<List<WishlistEntry>>(
+        value: wishlist,
+        loading: const Padding(
+          padding: EdgeInsets.all(AppSpacing.lg),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+        onRetry: () => ref.invalidate(customerWishlistProvider(customerId)),
+        isEmpty: (list) => list.isEmpty,
+        empty: Text(
+          'Nothing on the wishlist yet. Add pieces from Sales Assistance.',
+          style: context.text.bodySmall?.copyWith(
+            color: context.scheme.onSurfaceVariant,
+          ),
+        ),
+        data: (entries) => Column(
+          children: [
+            for (final entry in entries)
+              Dismissible(
+                key: ValueKey(entry.id),
+                direction: canManage
+                    ? DismissDirection.endToStart
+                    : DismissDirection.none,
+                background: Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: AppSpacing.lg),
+                  color: context.colors.dangerContainer,
+                  child: Icon(
+                    Icons.delete_outline,
+                    color: context.colors.danger,
+                  ),
+                ),
+                onDismissed: (_) => _remove(context, ref, entry),
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  leading: Icon(
+                    entry.hasItem
+                        ? Icons.diamond_outlined
+                        : Icons.category_outlined,
+                    color: entry.hasItem
+                        ? context.scheme.primary
+                        : context.scheme.outline,
+                  ),
+                  title: Text(entry.title),
+                  subtitle: Text(
+                    [
+                      if (entry.hasItem && entry.productName != null)
+                        entry.productName!,
+                      if (entry.hasItem && entry.itemStatus != null)
+                        entry.itemStatus!,
+                      if (!entry.hasItem) 'No specific piece chosen',
+                      if (entry.currentPrice != null)
+                        formatters.money(entry.currentPrice, entry.currency),
+                      if (entry.note != null && entry.note!.isNotEmpty)
+                        entry.note!,
+                    ].join(' · '),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: canManage
+                      ? IconButton(
+                          icon: const Icon(Icons.close),
+                          tooltip: 'Remove',
+                          onPressed: () => _remove(context, ref, entry),
+                        )
+                      : null,
+                  onTap: entry.hasItem
+                      ? () => context.push(
+                          AppRoutes.itemDetailPath(entry.jewelleryItemId!),
+                        )
+                      : null,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }

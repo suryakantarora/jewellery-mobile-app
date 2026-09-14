@@ -23,12 +23,12 @@ class BranchContextBar extends ConsumerWidget {
     if (session is! SessionAuthenticated) return const SizedBox.shrink();
 
     final user = session.user;
-    // The company is resolved from the branch's companyId, and that lookup
-    // needs ORGANIZATION_VIEW — which a sales executive has no reason to hold.
-    // When it is missing the bar shows the branch alone rather than repeating
-    // it on both sides of the separator, which read as "Vientiane Showroom ›
-    // Vientiane Showroom" and looked like a bug to anyone using the app.
-    final institution = session.company?.name;
+    // The tenant comes with the user itself (`companyName` on /auth/me) since
+    // company scoping landed, so every member of staff sees their institution
+    // without ORGANIZATION_VIEW. The branch's company lookup remains as a
+    // fallback for older backends. When neither is known the bar shows the
+    // branch alone rather than repeating it on both sides of the separator.
+    final institution = user.companyName ?? session.company?.name;
     final canSwitch = user.hasMultipleBranches;
 
     return Material(

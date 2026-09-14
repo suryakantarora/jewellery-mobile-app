@@ -10,7 +10,10 @@ but several of the workarounds are things I would not want to ship as final.
 
 ## Blocking-ish — recommend fixing before the MVP ships
 
-### 1. No dashboard summary endpoint · Phase 3
+### 1. No dashboard summary endpoint · Phase 3 — ✅ resolved 14 Sep 2026
+`GET /api/v1/dashboard/summary?branchId=&refresh=` returns permission-filtered sections (sales on SALE_VIEW — settles NEXT-STEPS 1.3 — inventory, inventoryValue, transfers, approvals, repairs, procurement, notifications, metalRates); absent section = not permitted. 30 s server cache. The app now makes one call instead of seven.
+
+Original note:
 The dashboard needs 8–15 parallel calls to render. Proposed:
 `GET /api/v1/dashboard/summary?branchId=` returning sales / inventory / transfers / approvals /
 repairs / notifications / tasks, **permission-filtered server-side**.
@@ -43,22 +46,34 @@ their whole branch's badges — a shared row cannot carry per-user state. Covere
 still accepts an arbitrary recipient id, which is right for auditing the queue, but the app no
 longer sends one. Constraining it server-side is still worth considering for other clients.
 
-**Still open:**
+**Still open — all ✅ done 14 Sep 2026 (server + app):**
 ```
-1. staff-directed events with a resolved recipient user id
-   (transfer approved / awaiting-approval, PO approved, repair ready, high-value alert)
-   — today only branch-wide broadcasts exist
-2. POST /notifications/devices   DELETE /notifications/devices/{token}
-3. server-side FCM send for NotificationChannel.PUSH
+1. ✅ staff-directed events with a resolved recipient user id:
+      TRANSFER_AWAITING_APPROVAL / TRANSFER_APPROVED / TRANSFER_REJECTED,
+      PURCHASE_ORDER_APPROVED / _REJECTED, REPAIR_READY_STAFF, HIGH_VALUE_SALE,
+      APPROVAL_INFO_REQUESTED / _ANSWERED, DISCOUNT_REQUESTED / DISCOUNT_DECIDED
+      — app labels/tones in NotificationEventTypes (notification_models.dart)
+2. ✅ POST /notifications/devices   DELETE /notifications/devices/{token}
+      — app: push_registration_service.dart registers on sign-in, re-registers on
+        token refresh, deletes on sign-out (best-effort)
+3. ✅ server-side FCM send for NotificationChannel.PUSH
+      — payload {eventType, referenceType, referenceId, notificationId}; app routes
+        taps via NotificationRouter.pathFor; foreground shows a snackbar + refreshes
 ```
-*Without those:* the inbox works but is **poll-on-open** — nothing reaches a locked phone.
-Needs a Firebase project and a product decision, not more app work.
+*Still needed from you:* the Firebase project config — `google-services.json` per Android
+flavour, `GoogleService-Info.plist` per iOS flavour + Push Notifications capability + APNs key,
+and service-account credentials on the server. Until those are in place the app detects the
+missing config, logs once, and stays on the 60 s poll. `referenceType` `Sale` has no detail
+route in the app yet, so a `HIGH_VALUE_SALE` tap opens the inbox.
 
 `referenceType` is now documented by observation: `BusinessEventListener` writes
 `InventoryMovement`, `Location`, `Sale`, `Payment`, `RepairRequest`, `Exchange`, `Campaign`.
 `NotificationRouter` matches these case-insensitively.
 
-### 3. Item responses are all UUIDs, no names · Phases 4, 5, 7, 10
+### 3. Item responses are all UUIDs, no names · Phases 4, 5, 7, 10 — ✅ resolved 14 Sep 2026 (Fix A)
+`JewelleryItemResponse` now carries productName, productCode, designName, metalName, purityCode, currentLocationName, currentBranchName, binCode, supplierName, resolved in batch per page. The app's reference cache is now a fallback for names and the source for pickers.
+
+Original note:
 `JewelleryItemResponse` carries `productId`, `metalId`, `purityId`, `currentLocationId`,
 `supplierId` — no display names. Rendering "22K Gold · Ladies Ring · Counter 2" for a 20-row
 list needs ~60 extra lookups.
@@ -88,9 +103,17 @@ half-written row. `primaryImageKey` comes back inline on the item response (batc
 of thirty rows costs one extra query, not thirty). One primary per item, enforced by a partial
 unique index: a new primary demotes the old, and removing the primary promotes the next.
 
-*Still open:* design images. Trivial to mirror if the catalogue needs them.
+*Design/product images — ✅ 14 Sep 2026:* `GET/POST/DELETE /designs/{id}/images` and
+`/products/{id}/images`, with `primaryImageKey` inline on `DesignResponse` / `ProductResponse`
+(parsed by the app's `Design` / `Product` models). The catalogue cannot yet fall back to them:
+`CatalogueItemResponse` carries no `designId`/`productId`, so add those (or a
+`fallbackImageKey`) to the catalogue response if that fallback is wanted. The app's item photo
+gallery (`item_image_gallery.dart` on the passport) uses `POST /files` → `POST .../images`.
 
-### 5. No unified approvals endpoint · Phases 3, 14
+### 5. No unified approvals endpoint · Phases 3, 14 — ✅ resolved 14 Sep 2026
+`GET /approvals/pending`, `GET /approvals/pending/count`, `POST /approvals/{type}/{id}/decision` (APPROVE / REJECT / REQUEST_INFO, idempotent by X-Idempotency-Key), `GET|POST /approvals/{type}/{id}/information[/{requestId}/answer]`. Discount approval now has a backend: `/sales/discount-requests` with DISCOUNT_REQUEST / DISCOUNT_APPROVE enforced and `discountRequestId` honoured on `POST /sales`. High-value transactions raise a HIGH_VALUE_SALE staff notification rather than an approval gate.
+
+Original note:
 Five modules each with their own pending-status query and approve call. Proposed
 `GET /api/v1/approvals/pending` + `POST /api/v1/approvals/{type}/{id}/decision`, scoped to what
 the caller can actually approve.
@@ -102,22 +125,34 @@ built — placeholders only.
 
 ## Should fix — real but workaroundable
 
-### 6. No branch header · all phases
+### 6. No branch header · all phases — ✅ resolved 14 Sep 2026
+`X-Branch-Id` is validated by a filter (foreign branch → 403) and exposed as `SecurityUtils.currentBranchId()`; the dashboard uses it as a fallback. Existing endpoints still take branchId explicitly.
+
+Original note:
 `SecurityUtils.requireBranchAccess(branchId)` takes branch as an explicit per-endpoint
 parameter. Accepting a standard `X-Branch-Id` header would make branch scoping a single
 interceptor concern instead of a parameter threaded through every repository.
 
-### 7. Idempotency only on three endpoints · Phases 7, 8, 12, 13
+### 7. Idempotency only on three endpoints · Phases 7, 8, 12, 13 — ✅ resolved 14 Sep 2026
+Transfer creation already accepted the key; added to `POST /exchanges`, `POST /repairs` and every approval decision.
+
+Original note:
 `X-Idempotency-Key` is supported on `/sales`, `/payments` and `/procurement/goods-receipts`.
 It is **not** supported on transfer creation, exchange steps or approvals — all of which a
 flaky network can duplicate. A double-submitted ₭4M transfer is a real incident.
 
-### 8. No bulk tag resolution · Phase 6
+### 8. No bulk tag resolution · Phase 6 — ✅ resolved 14 Sep 2026
+`POST /inventory/items/by-tags {tags[]}` → resolved/unresolved; the app chunks at 200 and shows a resolution sheet after a bulk scan.
+
+Original note:
 200 scanned tags = 200 sequential `by-tag` calls. Proposed
 `POST /api/v1/inventory/items/by-tags {tags:[…]}` → resolved + unresolved.
 *Without it:* concurrency-limited fan-out with a progress bar.
 
-### 9. No cross-branch availability endpoint · Phase 10
+### 9. No cross-branch availability endpoint · Phase 10 — ✅ resolved 14 Sep 2026
+`GET /inventory/availability?productId=` scoped to the caller's branches, zeros included.
+
+Original note:
 Proposed `GET /api/v1/inventory/availability?productId=` returning per-branch counts, filtered
 to the caller's branch access.
 *Without it:* one count call per accessible branch, in parallel.
@@ -143,20 +178,30 @@ after the constraint changed. And serving the new `BinDirectory` port from `Ware
 closed a **constructor cycle** — warehouse already depends on inventory through
 `InventoryOperations` — so the port lives in its own bean that reaches only the bin repository.
 
-### 11. No price range filter on item search · Phases 4, 5
+### 11. No price range filter on item search · Phases 4, 5 — ✅ resolved 14 Sep 2026
+`minPrice` / `maxPrice` on `GET /inventory/items`; filter sheet row in the app.
+
+Original note:
 The spec asks for it; `GET /inventory/items` has no `minPrice`/`maxPrice`. Client-side
 filtering of a paged list would be wrong, so the filter is dropped unless the params are added.
 
-### 12. No wishlist · Phases 10, 11
+### 12. No wishlist · Phases 10, 11 — ✅ resolved 14 Sep 2026
+Real table: `/customers/{id}/wishlist` (item, product or design entries). Shown on the customer 360 and added from the sales assistance screen.
+
+Original note:
 Nothing in the codebase. Options: add `/customers/{id}/wishlist`; or model it as a
 **quotation**, which already exists and is arguably the correct commercial concept; or
 device-local, which makes it invisible to colleagues and close to useless.
 *Recommendation:* quotations now, a real wishlist later.
 
-### 13. No "request information" approval action · Phase 14
+### 13. No "request information" approval action · Phase 14 — ✅ resolved 14 Sep 2026
+See item 5: REQUEST_INFO creates an information request without changing status; the creator answers it in-app.
+
+Original note:
 The spec lists it; no backend supports it. I will not simulate it with a rejection.
 
-### 14. No app version endpoint · Phase 17 — 🟡 app side done, backend in progress
+### 14. No app version endpoint · Phase 17 — ✅ resolved 14 Sep 2026 (both sides)
+Backend: `GET /api/v1/app/version` public, config `jewellery.app.versions.{android,ios}.*` (env APP_ANDROID_MIN_SUPPORTED etc.).
 Needed for the forced-update gate: `GET /api/v1/app/version?platform=ANDROID|IOS&current=<x.y.z>`
 (public, no token) → `{platform, minSupported, latest, storeUrl, message?, forceUpdate}`.
 
@@ -337,3 +382,129 @@ scoped, without disturbing staff read behaviour elsewhere:
 - a super admin, who has no home branch by design, still sees all
 
 Verified: `somchai` 19 items unscoped, 403 for Central Warehouse; `admin` 34.
+
+---
+
+## Multi-tenancy — implemented 14 September 2026
+
+Items 37–40 are closed. The company is now a real tenant boundary: a second
+company on the same platform cannot see the first one's data, and nothing
+changed for the single existing company.
+
+### The model
+
+```
+Authentication  →  Tenant (company)  →  Branch
+```
+
+- **The principal carries the company.** `AuthenticatedUser` has a
+  `companyId` component next to `branchIds` and `superAdmin`. It travels in the
+  access token as the **`co` claim** (a UUID string).
+- **A super administrator has no company** (`companyId` null, no `co` claim)
+  and sees every company — they are a platform user, as before. A super admin
+  *can* be given a company, in which case they are confined to it like anyone
+  else.
+- **A token without `co` for an ordinary user is legacy.** Any company-scoped
+  read throws `401 UNAUTHORIZED` — *"Your session predates company scoping.
+  Sign in again."* The app should treat that exactly like an expired token:
+  drop the session and re-login. Tokens issued after this deploy always carry
+  the claim.
+- **Reads stay cross-branch within the company.** The "do we have this in
+  Pakse?" workflow (item 38) is unchanged; `branchId` is still a filter, not a
+  boundary, inside the company. Mutations are still guarded by
+  `requireBranchAccess`, which now *also* refuses a branch of another company
+  even when a grant names it.
+- **Another company's record is a 404, never a 403** — existence is not
+  leaked.
+
+### What is scoped (V30 adds `company_id`, backfilled, NOT NULL)
+
+| table | scoped by | code uniqueness now |
+|---|---|---|
+| `product.product` | own column | `(company_id, sku)` |
+| `product.product_category` | own column | `(company_id, code)` |
+| `product.jewellery_design` | own column | `(company_id, design_code)` |
+| `product.metal` (purity inherits through `metal_id`) | own column | `(company_id, code)` |
+| `product.gemstone` | own column | `(company_id, code)` |
+| `customer.customer` | own column | `(company_id, customer_code)`, `(company_id, phone)` |
+| `procurement.supplier` | own column | `(company_id, code)` |
+| `identity.app_user` | own column, **nullable** (super admins) | unchanged |
+| `inventory.jewellery_item` | through `current_branch_id → branch.company_id` | — |
+| catalogue read model | joins `organization.branch` on the item | — |
+| `organization.company` / `branch` | list = own company only; foreign get = 404 | — |
+
+Gemstone is scoped, not shared, for the same reason metal is: the list is what
+a company's staff pick from, its codes are the company's vocabulary, and a
+shared list would let one tenant rename what another tenant's items refer to.
+
+Every list/search/get in the services above passes
+`SecurityUtils.currentCompanyIdOrNull()` into the repository with the
+`(:companyId is null or e.companyId = :companyId)` idiom — explicit in the
+query, not a Hibernate `@Filter`, so the scope is visible and testable.
+Cross-module ports (`ProductCatalog.requireProduct`,
+`CustomerDirectory.requireCustomer`, `SupplierDirectory.requireSupplier`) go
+through the same scoped lookups, so a sale for another company's customer
+fails as *not found*.
+
+### What is not scoped (deliberately)
+
+- `product_type`, `brand`, `collection`, `size` — platform-wide lookup lists,
+  referenced by products but carrying no business data.
+- Pricing rules, tax rates, discount policies, loyalty programmes, metal rates
+  — these are branch-scoped (or global) as before; the branch carries the
+  company. A pass adding `company_id` to the global ones is straightforward
+  when a second tenant actually lands.
+- Notifications, audit, finance, reporting — branch-scoped or user-scoped
+  already.
+- Label lookups used to name rows in lists (`labelsFor`, `branchNames`) are
+  unfiltered: they resolve ids the caller already holds.
+
+### Creating records
+
+- An ordinary user's creates are stamped with **their** company. Passing a
+  different `companyId` is a `400 VALIDATION_FAILED` ("Cannot create records
+  for another company").
+- A super administrator **must say which company** when creating master data:
+  `companyId` in the request, or an `X-Branch-Id` header (the branch decides),
+  or there is exactly one company on the platform. Otherwise
+  `400 VALIDATION_FAILED` — "companyId is required".
+- Users: the company comes from the request's `companyId`, else the creator's
+  company, else the company of the user's branches. Every branch granted to a
+  user must belong to that company (`400` otherwise). A user given a
+  super-admin role may have no company.
+- Customers: `registeredBranchId`, where given, decides the company and must
+  agree with the caller's.
+
+### Request / response changes (exact JSON names)
+
+- `GET /auth/me`, login and refresh `user`, `GET /users`, `GET /users/{id}`:
+  **`companyId`** (UUID, null for a platform super admin) and
+  **`companyName`** (string, null when no company) added to `UserResponse`.
+- Optional **`companyId`** (UUID) added to: `POST /users` (`CreateUserRequest`),
+  `POST /products` (`ProductRequest`), `POST /designs` (`DesignRequest`),
+  `POST /categories` (`CategoryRequest`), `POST /metals` (`MetalRequest`),
+  `POST /gemstones` (`GemstoneRequest`), `POST /suppliers` (`SupplierRequest`),
+  `POST /customers` (`CustomerRequest`). Omit it as a normal user.
+- `GET /companies` returns only the caller's company unless they are a
+  platform super admin. `GET /branches` is confined to the caller's company
+  (`companyId` filter naming another company yields an empty page).
+  `GET /branches/mine` unchanged.
+- JWT: new **`co`** claim.
+
+### Migration
+
+`V30__company_tenancy.sql` — adds `company_id` to the eight tables above,
+backfills every row to the oldest company (users: company of their primary
+branch, else of any granted branch, else the oldest company; super admins
+stay null), sets NOT NULL (except `app_user`), indexes each column, and
+replaces the global code/phone unique constraints with per-company ones.
+
+### Tests
+
+`CompanyTenancyIntegrationTest` (8 tests): company B with a branch, user,
+product, customer and item; an A user sees none of B's products, customers or
+items in lists and gets 404 on get-by-id (service and HTTP); the super admin
+sees both; creating a product as an A user stamps A and a `companyId` of B is
+refused; the same SKU is free in B; assigning a B branch to an A user fails;
+`requireBranchAccess` rejects B's branch for an A user even when granted; a
+legacy token without `co` is told to sign in again.

@@ -15,6 +15,8 @@ class AppUser {
     this.branchIds = const [],
     this.roles = const [],
     this.lastLoginAt,
+    this.companyId,
+    this.companyName,
   });
 
   final String id;
@@ -39,6 +41,15 @@ class AppUser {
   final PermissionSet permissions;
 
   final DateTime? lastLoginAt;
+
+  /// The tenant the user belongs to. Null only for platform super admins, who
+  /// act across every company. Sent by the backend since company scoping
+  /// landed (14 Sep 2026); absent on older responses, so both stay nullable.
+  final String? companyId;
+  final String? companyName;
+
+  /// A user without a company is a platform administrator.
+  bool get isPlatformUser => companyId == null;
 
   bool get hasMultipleBranches => branchIds.length > 1;
   bool get hasNoBranch => branchIds.isEmpty;
@@ -81,6 +92,8 @@ class AppUser {
         superAdmin: roles.any((role) => role.toUpperCase().contains('SUPER')),
       ),
       lastLoginAt: DateTime.tryParse(json['lastLoginAt'] as String? ?? ''),
+      companyId: json['companyId'] as String?,
+      companyName: json['companyName'] as String?,
     );
   }
 }

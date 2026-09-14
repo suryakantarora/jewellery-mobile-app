@@ -159,7 +159,7 @@ class _CatalogueTile extends ConsumerWidget {
               borderRadius: AppRadius.cardRadius,
               child: SizedBox.expand(
                 child: ItemPhoto(
-                  storageKey: item.primaryImageKey,
+                  storageKey: item.displayImageKey,
                   size: 260,
                   radius: AppRadius.md,
                 ),
@@ -224,7 +224,7 @@ class _CatalogueDetail extends ConsumerWidget {
           children: [
             Center(
               child: ItemPhoto(
-                storageKey: item.primaryImageKey,
+                storageKey: item.displayImageKey,
                 size: 240,
                 radius: AppRadius.lg,
               ),

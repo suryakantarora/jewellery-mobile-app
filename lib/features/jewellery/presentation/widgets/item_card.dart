@@ -15,8 +15,9 @@ import 'item_photo.dart';
 /// The item row used by search, inventory and pickers.
 ///
 /// Weights are always three decimals with tabular figures so a column of them
-/// reads straight down. Names come from the reference cache, which is why the
-/// row can render them synchronously.
+/// reads straight down. Names come from the item itself where the server
+/// supplied them, and from the reference cache otherwise — either way the row
+/// renders synchronously.
 class ItemCard extends ConsumerWidget {
   const ItemCard({
     super.key,
@@ -42,9 +43,14 @@ class ItemCard extends ConsumerWidget {
     final formatters = ref.watch(formattersProvider);
     final hideAmounts = ref.watch(hideAmountsProvider);
 
-    final product = reference.cachedProduct(item.productId);
-    final material = reference.materialLabel(item.metalId, item.purityId);
-    final location = reference.location(item.currentLocationId);
+    final productName =
+        item.productName ?? reference.cachedProduct(item.productId)?.name;
+    final material =
+        item.materialLabel ??
+        reference.materialLabel(item.metalId, item.purityId);
+    final locationName =
+        item.currentLocationName ??
+        reference.location(item.currentLocationId)?.name;
 
     return Material(
       color: selected == true
@@ -90,7 +96,7 @@ class ItemCard extends ConsumerWidget {
                     ),
                     AppSpacing.gapXxs,
                     Text(
-                      product?.name ?? 'Product —',
+                      productName ?? 'Product —',
                       style: context.text.titleSmall,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -115,7 +121,7 @@ class ItemCard extends ConsumerWidget {
                         ),
                       ),
                     ],
-                    if (location != null) ...[
+                    if (locationName != null) ...[
                       AppSpacing.gapXs,
                       Row(
                         children: [
@@ -127,7 +133,7 @@ class ItemCard extends ConsumerWidget {
                           AppSpacing.wGapXs,
                           Flexible(
                             child: Text(
-                              location.name,
+                              locationName,
                               style: context.text.labelSmall?.copyWith(
                                 color: context.scheme.onSurfaceVariant,
                               ),

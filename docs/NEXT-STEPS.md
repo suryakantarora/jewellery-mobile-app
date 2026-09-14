@@ -28,24 +28,20 @@ Flutter app is not a git repository at all.
 
 ## 1. Decisions needed before more is built
 
-### 1.1 Multi-tenancy — the big one
+### 1.1 Multi-tenancy — ✅ done 14 September 2026
 
-**Nothing enforces a company boundary today.** The branch is the authorization
-boundary, the principal carries no company, and product master data
-(`product`, `metal`, `product_category`) has no company column at all.
+The company is now the tenant boundary. The principal carries `companyId`
+(the `co` JWT claim), product master data, metals, gemstones, customers,
+suppliers and users have a `company_id` column (V30), every read is filtered
+by the caller's company, and a branch grant cannot cross companies. A super
+administrator without a company still sees everything.
 
-Demonstrated, not inferred — `somchai`, granted one showroom, reads all 40 items
-across every branch.
+**What the app must do:** treat a `401` with *"Sign in again"* like an expired
+token (old tokens have no `co` claim), and read `companyId` / `companyName`
+from `/auth/me`. Full detail in BACKEND-GAPS "Multi-tenancy — implemented".
 
-For one company this is fine and arguably deliberate. For the multi-tenant
-customer app you described, it is not survivable: Company A would read Company
-B's stock, customers and prices.
-
-**Why it blocks work:** a customer account has to belong to *something*. Until
-the tenant model exists, the customer identity model cannot be designed, and
-retrofitting a tenant key after real accounts exist is painful.
-
-Detail in BACKEND-GAPS items 37–40.
+The customer identity model (1.2) can now be designed: a customer account
+belongs to a company.
 
 ### 1.2 Are app customers the same record as CRM customers?
 
@@ -56,7 +52,7 @@ get two customer databases that drift apart.
 `customer.customer` has a **nullable** `registered_branch_id` and nothing filters
 on it, so today the answer is "neither, quite".
 
-### 1.3 Should sales staff see their branch's daily sales total?
+### 1.3 Should sales staff see their branch's daily sales total? — ✅ settled 14 Sep 2026: yes, via the dashboard summary's `sales` section gated on SALE_VIEW
 
 `somchai` currently sees a "Today's sales" tile reading **"Unavailable"** —
 SALES_EXECUTIVE holds `SALE_VIEW` but the tile is backed by the sales *report*,
@@ -66,15 +62,15 @@ change decided in isolation.
 
 ---
 
-## 2. Ready to start once 1.1 is settled
+## 2. Ready to start (1.1 is settled)
 
-### 2.1 Company boundary
-Add `companyId` to the principal and to product master data; filter reads by it.
-**Far cheaper now than after data accumulates.**
+### 2.1 Company boundary — ✅ done 14 September 2026
+`companyId` is on the principal and on product master data; reads are
+filtered by it. See 1.1.
 
 ### 2.2 Customer identity
-Credentials on customers, registration, login, password reset. Depends entirely
-on 1.1 and 1.2.
+Credentials on customers, registration, login, password reset. 1.1 is done;
+depends on 1.2.
 
 ### 2.3 Then the storefront
 Cart, orders, checkout. The catalogue endpoint already exists and is already
@@ -92,10 +88,10 @@ demo and is not wired to this backend.
 
 | item | note |
 |---|---|
-| **Push notifications** | Deferred at your request. Needs device registration, FCM, a Firebase project. The inbox works but is poll-on-open. |
-| **Staff-directed events** | Only branch-wide broadcasts exist. "Transfer awaiting *your* approval" has no event behind it. |
+| **Push notifications** | ✅ Built 14 Sep 2026 (device registration, FCM sender, app registration). Off until a Firebase service account + google-services files are supplied — see BACKLOG.md. |
+| **Staff-directed events** | ✅ Built 14 Sep 2026: transfer awaiting/approved/rejected, PO approved/rejected, repair ready (staff), high-value sale, approval info requested/answered, discount requested/decided. |
 | **Backend-managed branding** | Item photos are fully backend-driven. Banners, category artwork and a shop logo are not — no such concept exists yet. |
-| **Design images** | `product` and `jewellery_item` have images; `design` does not. Trivial to mirror. |
+| **Design images** | ✅ Built 14 Sep 2026 (`/designs/{id}/images`, `/products/{id}/images`, primaryImageKey on both). |
 | **iOS build flavours** | ✅ done — `dev` / `staging` / `prod` schemes and `Debug-*` / `Release-*` / `Profile-*` configurations in `ios/Runner.xcodeproj`, identity in `ios/Runner/Config/*.xcconfig`. `flutter run --flavor dev` works on both platforms; see README “Building”. |
 | **Malformed enum → 500** | Fixed for missing params, unreadable bodies and unknown paths. A malformed *enum* in a nested body may still slip through. |
 

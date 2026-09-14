@@ -70,3 +70,26 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+// --- Firebase Cloud Messaging ------------------------------------------------
+// The google-services plugin fails the build when its config file is missing,
+// and the file is per-project secret material that is not committed. Apply it
+// only when at least one config exists, so a checkout without Firebase still
+// builds; the app then runs on notification polling alone.
+//
+// Provide one file per flavour (the plugin picks the matching source set):
+//   android/app/src/dev/google-services.json      (com.finotechsoftware.jewelleryapp.dev)
+//   android/app/src/staging/google-services.json  (com.finotechsoftware.jewelleryapp.staging)
+//   android/app/src/prod/google-services.json     (com.finotechsoftware.jewelleryapp)
+// or a single android/app/google-services.json containing all three clients.
+val googleServicesConfigs = listOf(
+    "google-services.json",
+    "src/dev/google-services.json",
+    "src/staging/google-services.json",
+    "src/prod/google-services.json",
+)
+if (googleServicesConfigs.any { file(it).exists() }) {
+    apply(plugin = "com.google.gms.google-services")
+} else {
+    logger.lifecycle("google-services.json not found; building without Firebase push")
+}

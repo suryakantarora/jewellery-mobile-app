@@ -18,6 +18,7 @@ import '../../../../shared/widgets/status_badge.dart';
 import '../../domain/jewellery_item.dart';
 import '../providers/jewellery_providers.dart';
 import '../widgets/item_action_bar.dart';
+import '../widgets/item_image_gallery.dart';
 import '../widgets/item_photo.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../warehouse/domain/warehouse_models.dart';
@@ -84,13 +85,24 @@ class _PassportBody extends ConsumerWidget {
     final permissions = ref.watch(permissionsProvider);
     final hideAmounts = ref.watch(hideAmountsProvider);
 
+    // Server-supplied names first; the reference cache fills any gap.
     final product = reference.cachedProduct(item.productId);
     final design = reference.cachedDesign(item.designId);
     final category = reference.category(product?.categoryId);
     final type = reference.productType(product?.productTypeId);
     final metal = reference.metal(item.metalId);
     final purity = reference.purity(item.purityId);
+    final productName = item.productName ?? product?.name;
+    final productCode = item.productCode ?? product?.sku;
+    final designLabel =
+        item.designName ??
+        (design == null ? null : '${design.designCode} · ${design.name}');
+    final metalName = item.metalName ?? metal?.name;
+    final purityLabel =
+        item.purityCode ??
+        (purity == null ? null : '${purity.code} · ${purity.name}');
     final location = reference.location(item.currentLocationId);
+    final locationName = item.currentLocationName ?? location?.name;
 
     // Cost is a commercial secret: a salesperson sees price, never cost.
     final canSeeCost =
@@ -113,6 +125,8 @@ class _PassportBody extends ConsumerWidget {
             ),
           ],
         ),
+        // --- Item photo gallery (Phase 15 images) ---------------------------
+        SliverToBoxAdapter(child: ItemImageGallery(itemId: item.id)),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.lg,
@@ -136,7 +150,7 @@ class _PassportBody extends ConsumerWidget {
                         ),
                         AppSpacing.gapXs,
                         Text(
-                          product?.name ?? 'Product —',
+                          productName ?? 'Product —',
                           style: context.text.headlineSmall,
                         ),
                       ],
@@ -173,13 +187,8 @@ class _PassportBody extends ConsumerWidget {
                 initiallyExpanded: true,
                 child: Column(
                   children: [
-                    KeyValueRow(label: 'SKU', value: product?.sku ?? '—'),
-                    KeyValueRow(
-                      label: 'Design',
-                      value: design == null
-                          ? '—'
-                          : '${design.designCode} · ${design.name}',
-                    ),
+                    KeyValueRow(label: 'SKU', value: productCode ?? '—'),
+                    KeyValueRow(label: 'Design', value: designLabel ?? '—'),
                     KeyValueRow(
                       label: 'Category',
                       value: category?.name ?? '—',
@@ -196,13 +205,8 @@ class _PassportBody extends ConsumerWidget {
                 initiallyExpanded: true,
                 child: Column(
                   children: [
-                    KeyValueRow(label: 'Metal', value: metal?.name ?? '—'),
-                    KeyValueRow(
-                      label: 'Purity',
-                      value: purity == null
-                          ? '—'
-                          : '${purity.code} · ${purity.name}',
-                    ),
+                    KeyValueRow(label: 'Metal', value: metalName ?? '—'),
+                    KeyValueRow(label: 'Purity', value: purityLabel ?? '—'),
                     KeyValueRow(
                       label: 'Gross weight',
                       value: formatters.weight(item.grossWeight),
@@ -266,12 +270,12 @@ class _PassportBody extends ConsumerWidget {
                   children: [
                     KeyValueRow(
                       label: 'Branch',
-                      value: ref.watch(currentBranchProvider)?.name ?? '—',
+                      value:
+                          item.currentBranchName ??
+                          ref.watch(currentBranchProvider)?.name ??
+                          '—',
                     ),
-                    KeyValueRow(
-                      label: 'Location',
-                      value: location?.name ?? '—',
-                    ),
+                    KeyValueRow(label: 'Location', value: locationName ?? '—'),
                     if (location != null)
                       KeyValueRow(label: 'Type', value: location.type.label),
                     _BinRow(item: item),
@@ -559,7 +563,7 @@ class _BinRow extends ConsumerWidget {
         children: [
           Text(
             current == null
-                ? (item.binId == null ? 'Not assigned' : '—')
+                ? (item.binId == null ? 'Not assigned' : (item.binCode ?? '—'))
                 : '${current.code} · ${current.name}',
             style: context.text.bodyMedium?.copyWith(
               color: item.binId == null

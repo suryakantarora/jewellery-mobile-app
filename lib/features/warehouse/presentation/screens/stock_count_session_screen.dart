@@ -13,6 +13,7 @@ import '../../../../shared/widgets/app_dialogs.dart';
 import '../../../../shared/widgets/app_inputs.dart';
 import '../../../../shared/widgets/async_value_view.dart';
 import '../../../../shared/widgets/status_badge.dart';
+import '../../../jewellery/domain/jewellery_item.dart';
 import '../../../scanner/domain/scan_session.dart';
 import '../../../scanner/presentation/providers/scanner_providers.dart';
 import '../../../scanner/presentation/screens/scan_screen.dart';
@@ -38,6 +39,10 @@ class StockCountSessionScreen extends ConsumerStatefulWidget {
 class _StockCountSessionScreenState
     extends ConsumerState<StockCountSessionScreen> {
   ScanSession? _session;
+
+  /// Items the scanner resolved, keyed by item code. In memory only: the
+  /// persisted session holds codes, and names are re-resolved on the next scan.
+  final Map<String, JewelleryItem> _items = {};
   bool _busy = false;
 
   @override
@@ -71,7 +76,7 @@ class _StockCountSessionScreenState
   Future<void> _scan(StockCount count) async {
     final session = _sessionFor(count);
 
-    final scanned = await Navigator.of(context).push<List<String>>(
+    final result = await Navigator.of(context).push<BulkScanResult>(
       MaterialPageRoute(
         builder: (_) => ScanScreen(
           request: ScanRequest(
@@ -83,10 +88,13 @@ class _StockCountSessionScreenState
       ),
     );
 
-    if (scanned == null) return;
+    if (result == null) return;
 
     setState(() {
-      for (final tag in scanned) {
+      _items.addAll(result.itemsByCode);
+      // Canonical codes: a barcode that resolved to an expected item counts as
+      // that item; only genuinely unknown scans land in "unexpected".
+      for (final tag in result.canonicalTags) {
         session.record(tag);
       }
     });
@@ -115,8 +123,10 @@ class _StockCountSessionScreenState
 
     setState(() => _busy = true);
     try {
-      // Codes map back to item ids; the backend reconciles from ids.
+      // Codes map back to item ids; the backend reconciles from ids. Resolved
+      // items supply ids for scans that were not on the expected list.
       final byCode = {
+        for (final entry in _items.entries) entry.key: entry.value.id,
         for (final line in count.lines) line.itemCode: line.jewelleryItemId,
       };
       final found = session.scanned
@@ -290,7 +300,19 @@ class _StockCountSessionScreenState
                 for (final code in session.unexpected)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Text(code, style: AppTypography.mono(context)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(code, style: AppTypography.mono(context)),
+                        if (_items[code]?.productName case final name?)
+                          Text(
+                            name,
+                            style: context.text.labelSmall?.copyWith(
+                              color: context.scheme.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
               ],
             ),

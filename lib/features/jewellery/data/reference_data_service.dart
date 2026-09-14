@@ -5,11 +5,15 @@ import '../../../core/network/api_client.dart';
 import '../../../shared/models/organization.dart';
 import '../../../shared/models/reference_data.dart';
 
-/// Resolves the UUIDs on a jewellery item into names.
+/// Master data for pickers, and a **fallback** for names.
 ///
-/// The backend returns `productId`, `metalId`, `purityId` and
-/// `currentLocationId` as bare UUIDs with no display names. Rendering a
-/// twenty-row list would otherwise need sixty extra requests.
+/// `JewelleryItemResponse` now carries display names (`productName`,
+/// `metalName`, `purityCode`, `currentLocationName`, ...) next to its UUIDs,
+/// so item rows and the passport read those first and only consult this cache
+/// when a name is null — an older payload, or a nested item the backend did not
+/// enrich. The cache remains the source of truth for anything that needs the
+/// full set rather than one item's labels: filter chips, metal and purity
+/// pickers, location choosers, and the metal code behind a thumbnail's tint.
 ///
 /// Two strategies, chosen per data set:
 ///

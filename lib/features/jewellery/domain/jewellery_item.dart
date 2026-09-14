@@ -70,6 +70,15 @@ class JewelleryItem {
     this.qualityChecked = false,
     this.notes,
     this.version = 0,
+    this.productName,
+    this.productCode,
+    this.designName,
+    this.metalName,
+    this.purityCode,
+    this.currentLocationName,
+    this.currentBranchName,
+    this.binCode,
+    this.supplierName,
   });
 
   final String id;
@@ -131,6 +140,28 @@ class JewelleryItem {
   /// Optimistic-lock token, sent back on mutations.
   final int version;
 
+  /// Display names resolved by the server alongside the UUIDs above.
+  ///
+  /// Preferred over the reference cache wherever a name is rendered, because
+  /// they are correct for *this* item even when the cache belongs to another
+  /// branch or has not loaded the product yet. Null on older payloads, in which
+  /// case the cache is the fallback.
+  final String? productName;
+  final String? productCode;
+  final String? designName;
+  final String? metalName;
+  final String? purityCode;
+  final String? currentLocationName;
+  final String? currentBranchName;
+  final String? binCode;
+  final String? supplierName;
+
+  /// "22K Gold" from the server-supplied names, or null when neither is known.
+  String? get materialLabel {
+    final label = [purityCode, metalName].whereType<String>().join(' ');
+    return label.isEmpty ? null : label;
+  }
+
   bool get isReserved => status == ItemStatus.reserved;
   bool get hasTags => rfidTag != null || qrCode != null || barcode != null;
 
@@ -178,6 +209,15 @@ class JewelleryItem {
       qualityChecked: json['qualityChecked'] as bool? ?? false,
       notes: json['notes'] as String?,
       version: (json['version'] as num?)?.toInt() ?? 0,
+      productName: json['productName'] as String?,
+      productCode: json['productCode'] as String?,
+      designName: json['designName'] as String?,
+      metalName: json['metalName'] as String?,
+      purityCode: json['purityCode'] as String?,
+      currentLocationName: json['currentLocationName'] as String?,
+      currentBranchName: json['currentBranchName'] as String?,
+      binCode: json['binCode'] as String?,
+      supplierName: json['supplierName'] as String?,
     );
   }
 }

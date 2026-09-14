@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/security/session_controller.dart';
+import '../../../../core/settings/settings_providers.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/extensions/context_extensions.dart';
 import '../../../../shared/widgets/app_dialogs.dart';
@@ -10,10 +12,10 @@ import '../providers/jewellery_providers.dart';
 
 /// Filters for the item list.
 ///
-/// Deliberately omits a price range: `GET /inventory/items` exposes no
-/// `minPrice`/`maxPrice`, and filtering a paged list client-side would show a
-/// filtered page while claiming a full-result count — a quiet lie. The filter
-/// returns as soon as the backend supports it.
+/// The price range is applied by the backend (`minPrice`/`maxPrice` on
+/// `GET /inventory/items`), so the page shown and the count claimed always
+/// describe the same result set. Bounds are validated here only for shape —
+/// numeric, and min not above max — before they are sent.
 Future<void> showItemFilterSheet(BuildContext context, WidgetRef ref) {
   return showAppBottomSheet<void>(
     context,
@@ -22,14 +24,68 @@ Future<void> showItemFilterSheet(BuildContext context, WidgetRef ref) {
   );
 }
 
-class _FilterBody extends ConsumerWidget {
+class _FilterBody extends ConsumerStatefulWidget {
   const _FilterBody();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_FilterBody> createState() => _FilterBodyState();
+}
+
+class _FilterBodyState extends ConsumerState<_FilterBody> {
+  late final TextEditingController _min;
+  late final TextEditingController _max;
+  String? _priceError;
+
+  @override
+  void initState() {
+    super.initState();
+    final filters = ref.read(itemFiltersProvider);
+    _min = TextEditingController(text: _text(filters.minPrice));
+    _max = TextEditingController(text: _text(filters.maxPrice));
+  }
+
+  @override
+  void dispose() {
+    _min.dispose();
+    _max.dispose();
+    super.dispose();
+  }
+
+  static String _text(num? value) => value == null ? '' : '$value';
+
+  /// Parses and validates the price fields; commits them to the filter set and
+  /// returns true, or shows why not and returns false.
+  bool _applyPrice() {
+    final minRaw = _min.text.trim();
+    final maxRaw = _max.text.trim();
+    final min = minRaw.isEmpty ? null : num.tryParse(minRaw);
+    final max = maxRaw.isEmpty ? null : num.tryParse(maxRaw);
+
+    String? error;
+    if ((minRaw.isNotEmpty && min == null) ||
+        (maxRaw.isNotEmpty && max == null)) {
+      error = 'Enter numbers only';
+    } else if ((min ?? 0) < 0 || (max ?? 0) < 0) {
+      error = 'Prices cannot be negative';
+    } else if (min != null && max != null && min > max) {
+      error = 'Minimum is above maximum';
+    }
+
+    setState(() => _priceError = error);
+    if (error != null) return false;
+
+    ref.read(itemFiltersProvider.notifier).setPriceRange(min: min, max: max);
+    return true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final filters = ref.watch(itemFiltersProvider);
     final controller = ref.read(itemFiltersProvider.notifier);
     final reference = ref.watch(referenceDataProvider);
+    final currency =
+        ref.watch(sessionControllerProvider).company?.baseCurrency ??
+        ref.watch(displayCurrencyProvider).code;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -108,7 +164,60 @@ class _FilterBody extends ConsumerWidget {
             ],
           ),
         ),
-        AppSpacing.gapXl,
+        _Group(
+          label: 'Price ($currency)',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: AppTextField(
+                      controller: _min,
+                      label: 'Min',
+                      hint: '0',
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      textInputAction: TextInputAction.next,
+                      onChanged: (_) {
+                        if (_priceError != null) {
+                          setState(() => _priceError = null);
+                        }
+                      },
+                    ),
+                  ),
+                  AppSpacing.wGapMd,
+                  Expanded(
+                    child: AppTextField(
+                      controller: _max,
+                      label: 'Max',
+                      hint: 'Any',
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      textInputAction: TextInputAction.done,
+                      onChanged: (_) {
+                        if (_priceError != null) {
+                          setState(() => _priceError = null);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              if (_priceError != null) ...[
+                AppSpacing.gapXs,
+                Text(
+                  _priceError!,
+                  style: context.text.labelSmall?.copyWith(
+                    color: context.scheme.error,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
         Row(
           children: [
             Expanded(
@@ -125,7 +234,9 @@ class _FilterBody extends ConsumerWidget {
             Expanded(
               child: AppButton(
                 label: 'Show results',
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  if (_applyPrice()) Navigator.of(context).pop();
+                },
               ),
             ),
           ],

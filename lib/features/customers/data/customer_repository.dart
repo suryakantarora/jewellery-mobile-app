@@ -1,12 +1,24 @@
+import '../../../core/connectivity/offline_guard.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_response.dart';
 import '../domain/customer_models.dart';
 
 class CustomerRepository {
-  CustomerRepository(this._client);
+  CustomerRepository(this._client, {OfflineGuard? offlineGuard})
+    : _offlineGuard = offlineGuard;
 
   final ApiClient _client;
+
+  /// Refuses mutations while offline. Null in tests that construct the
+  /// repository directly; the provider always supplies one.
+  final OfflineGuard? _offlineGuard;
+
+  Future<T> _guarded<T>(Future<T> Function() action) =>
+      _offlineGuard?.run(action) ?? action();
+
+  static String _wishlist(String customerId) =>
+      '${ApiEndpoints.customer(customerId)}/wishlist';
 
   Future<PageResponse<Customer>> search({
     String? query,
@@ -56,18 +68,20 @@ class CustomerRepository {
     String? registeredBranchId,
     String? notes,
   }) {
-    return _client.post<Customer>(
-      ApiEndpoints.customers,
-      body: {
-        'fullName': fullName,
-        'phone': phone,
-        if (email != null && email.isNotEmpty) 'email': email,
-        if (customerType != null) 'customerType': customerType,
-        if (registeredBranchId != null)
-          'registeredBranchId': registeredBranchId,
-        if (notes != null && notes.isNotEmpty) 'notes': notes,
-      },
-      parse: (data) => Customer.fromJson(data! as Map<String, dynamic>),
+    return _guarded(
+      () => _client.post<Customer>(
+        ApiEndpoints.customers,
+        body: {
+          'fullName': fullName,
+          'phone': phone,
+          if (email != null && email.isNotEmpty) 'email': email,
+          if (customerType != null) 'customerType': customerType,
+          if (registeredBranchId != null)
+            'registeredBranchId': registeredBranchId,
+          if (notes != null && notes.isNotEmpty) 'notes': notes,
+        },
+        parse: (data) => Customer.fromJson(data! as Map<String, dynamic>),
+      ),
     );
   }
 
@@ -77,14 +91,16 @@ class CustomerRepository {
     String? subject,
     String? notes,
   }) {
-    return _client.send(
-      ApiEndpoints.activities,
-      body: {
-        'customerId': customerId,
-        'activityType': activityType,
-        if (subject != null) 'subject': subject,
-        if (notes != null) 'notes': notes,
-      },
+    return _guarded(
+      () => _client.send(
+        ApiEndpoints.activities,
+        body: {
+          'customerId': customerId,
+          'activityType': activityType,
+          if (subject != null) 'subject': subject,
+          if (notes != null) 'notes': notes,
+        },
+      ),
     );
   }
 
@@ -98,4 +114,48 @@ class CustomerRepository {
               .toList(growable: false)
         : const [],
   );
+
+  // --- Wishlist ------------------------------------------------------------
+
+  Future<List<WishlistEntry>> wishlist(String customerId) =>
+      _client.get<List<WishlistEntry>>(
+        _wishlist(customerId),
+        parse: (data) => data is List
+            ? data
+                  .whereType<Map<String, dynamic>>()
+                  .map(WishlistEntry.fromJson)
+                  .toList(growable: false)
+            : const [],
+      );
+
+  /// Adds a piece, product or design. Exactly one id is expected; the backend
+  /// returns the existing entry rather than a duplicate if it is already listed.
+  Future<WishlistEntry> addToWishlist(
+    String customerId, {
+    String? jewelleryItemId,
+    String? productId,
+    String? designId,
+    String? note,
+    String? branchId,
+  }) {
+    return _guarded(
+      () => _client.post<WishlistEntry>(
+        _wishlist(customerId),
+        body: {
+          if (jewelleryItemId != null) 'jewelleryItemId': jewelleryItemId,
+          if (productId != null) 'productId': productId,
+          if (designId != null) 'designId': designId,
+          if (note != null && note.isNotEmpty) 'note': note,
+          if (branchId != null) 'branchId': branchId,
+        },
+        parse: (data) => WishlistEntry.fromJson(data! as Map<String, dynamic>),
+      ),
+    );
+  }
+
+  Future<void> removeFromWishlist(String customerId, String entryId) =>
+      _guarded(
+        () =>
+            _client.send('${_wishlist(customerId)}/$entryId', method: 'DELETE'),
+      );
 }

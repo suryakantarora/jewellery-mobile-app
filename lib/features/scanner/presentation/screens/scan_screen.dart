@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -13,6 +14,7 @@ import '../../../../shared/extensions/context_extensions.dart';
 import '../../../../shared/widgets/app_dialogs.dart';
 import '../../../../shared/widgets/app_inputs.dart';
 import '../../../../shared/widgets/status_badge.dart';
+import '../../../jewellery/domain/bulk_tag_resolution.dart';
 import '../../../jewellery/presentation/providers/jewellery_providers.dart';
 import '../../domain/scan_session.dart';
 import '../providers/scanner_providers.dart';
@@ -168,8 +170,54 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     if (outcome != ScanOutcome.repeat) await _resolveAndOpen(tag);
   }
 
-  void _finishBulk() =>
-      Navigator.of(context).pop(_session.scanned.toList(growable: false));
+  /// Bulk path: resolve everything scanned to items, show what did and did
+  /// not match, then hand both back to the caller as a [BulkScanResult].
+  Future<void> _finishBulk() async {
+    if (_resolving) return;
+    final tags = _session.scanned.toList(growable: false);
+    final navigator = Navigator.of(context);
+
+    if (tags.isEmpty) {
+      navigator.pop(
+        const BulkScanResult(tags: [], resolution: BulkTagResolution.empty),
+      );
+      return;
+    }
+
+    setState(() => _resolving = true);
+    final BulkTagResolution resolution;
+    try {
+      resolution = await ref.read(jewelleryRepositoryProvider).byTags(tags);
+    } on AppException catch (error) {
+      if (!mounted) return;
+      setState(() => _resolving = false);
+      // The scans themselves are not lost with the lookup. The operator
+      // decides whether raw codes are good enough for the flow they are in.
+      final keep = await showConfirmationDialog(
+        context,
+        title: 'Could not look up items',
+        message:
+            '${error.message}\n\nKeep the ${tags.length} scanned codes '
+            'without item details?',
+        tone: ConfirmTone.danger,
+        icon: Icons.cloud_off_outlined,
+        confirmLabel: 'Keep scans',
+      );
+      if (!mounted) return;
+      if (keep) navigator.pop(BulkScanResult(tags: tags));
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _resolving = false);
+
+    await showAppBottomSheet<void>(
+      context,
+      title: 'Scan results',
+      builder: (context) => _ResolutionSummary(resolution: resolution),
+    );
+    if (!mounted) return;
+    navigator.pop(BulkScanResult(tags: tags, resolution: resolution));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -212,6 +260,102 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// What the server made of a bulk scan, before the caller sees it.
+///
+/// Unresolved tags are listed with copy affordances because the usual next
+/// step is pasting them into a message to whoever tagged the stock.
+class _ResolutionSummary extends StatelessWidget {
+  const _ResolutionSummary({required this.resolution});
+
+  final BulkTagResolution resolution;
+
+  Future<void> _copy(BuildContext context, String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    if (context.mounted) {
+      showAppSnackBar(context, message: 'Copied', tone: SnackTone.success);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final unresolved = resolution.unresolved;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _Counter(
+              label: 'Resolved',
+              value: resolution.resolvedCount,
+              tone: context.colors.success,
+            ),
+            _Counter(
+              label: 'Unresolved',
+              value: resolution.unresolvedCount,
+              tone: unresolved.isEmpty
+                  ? context.scheme.onSurfaceVariant
+                  : context.colors.warning,
+            ),
+          ],
+        ),
+        if (unresolved.isNotEmpty) ...[
+          AppSpacing.gapLg,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'No item matches these codes',
+                  style: context.text.labelMedium?.copyWith(
+                    color: context.scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.copy_all_outlined, size: 16),
+                label: const Text('Copy all'),
+                onPressed: () => _copy(context, unresolved.join('\n')),
+              ),
+            ],
+          ),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 240),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: unresolved.length,
+              itemBuilder: (context, index) {
+                final tag = unresolved[index];
+                return ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.help_outline,
+                    size: 18,
+                    color: context.colors.warning,
+                  ),
+                  title: Text(tag, style: AppTypography.mono(context)),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.copy_outlined, size: 18),
+                    tooltip: 'Copy',
+                    onPressed: () => _copy(context, tag),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+        AppSpacing.gapLg,
+        AppButton(
+          label: context.l10n.actionContinue,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ],
     );
   }
 }

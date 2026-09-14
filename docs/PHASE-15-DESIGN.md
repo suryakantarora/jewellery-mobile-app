@@ -110,7 +110,33 @@ Resolution rules:
 
 ## 4. Push (FCM)
 
-Architecture prepared regardless of whether the backend lands:
+**Status (14 Sep 2026): implemented on both sides.** Backend exposes
+`POST /notifications/devices` / `DELETE /notifications/devices/{token}` and sends FCM for
+`NotificationChannel.PUSH` with a data payload of `{eventType, referenceType, referenceId,
+notificationId}` plus an OS title/body. App side:
+`lib/features/notifications/data/push_registration_service.dart` (`pushRegistrationProvider`,
+mounted from `app.dart`): sign-in → permission → token → register (platform + app version);
+`onTokenRefresh` → re-register; sign-out → `DELETE` (best-effort) + `deleteToken`;
+foreground → in-app snackbar with **View** + badge/inbox refresh; background/terminated tap →
+`NotificationRouter.pathFor` → `go_router.push` (deferred until the session is authenticated on
+a cold start). Unknown reference types (today `Sale`, which has no detail route) open the inbox.
+
+**Firebase is optional.** `main()` wraps `Firebase.initializeApp()`; on failure the app logs once
+and runs on the 60 s unread-count poll. The Android `google-services` plugin is applied only when
+a config file exists. Not implemented from the original sketch: per-category Android channels and
+the settings screen (single default channel; no server-side preference endpoint yet).
+
+**Config the user must supply (not committed):**
+- Android: `android/app/src/{dev,staging,prod}/google-services.json` (package ids
+  `com.finotechsoftware.jewelleryapp[.dev|.staging]`), or one `android/app/google-services.json`
+  containing all three clients.
+- iOS: `ios/Runner/GoogleService-Info.plist` per flavour (add to the Runner target; if one file
+  per flavour, copy the right one in a build phase keyed on `$(FLAVOR)`), enable the
+  **Push Notifications** capability (aps-environment entitlement) and **Background Modes →
+  Remote notifications** in Xcode, and upload the APNs auth key (.p8) to the Firebase project.
+- Backend: the Firebase service-account credentials for server-side send.
+
+Original design sketch, kept for reference:
 
 ```text
 PushService (abstract)
